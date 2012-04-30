@@ -197,12 +197,12 @@ optimization solution based on in-place binary translation.
 \centering
 \caption{Performance comparison}
       \begin{tabular}{|l | l| c c c c|} \hline
-     & \multicolumn{5}{c}{Time ($sec$)}\\  
+     & \multicolumn{5}{c|}{ Running Time in $sec$}\\  
       S.No.\verb, ,&  Benchmark\verb, ,  & Bare-metal \verb, ,& Base KVM \verb, , & LABT KVM \verb, ,& PV KVM \\ \hline
       1&  Linux Boot & 6.5	& 30.03	& 12.24	& 11.79 \\
       2& Echo Spawn	& 1.4	& 21.34 &	7.26 &	6.5 \\
       3& Find	& 0.39	& 1.89	& 0.71	& 0.67 \\ \hline
-	   & \multicolumn{5}{c}{Time ($msec$)}\\  \hline
+	   & \multicolumn{5}{c|}{Latency in $msec$}\\  \hline
 
   4& syscall	&	0.001	&	0.021	&	0.004	&	0.004	\\
 5&stat	&	0.003	&	0.033	&	0.007	&	0.006	\\
@@ -218,6 +218,30 @@ optimization solution based on in-place binary translation.
       \end{tabular}
 \label{tab:lpGMKLsmall}
 \end{table*} 
+
+
+\begin{table*}
+\centering
+\caption{Context switch times in $ms$}
+      \begin{tabular}{|l | c| c |c |c|} \hline
+       Case\verb, ,  & Bare-metal \verb, ,& Base KVM \verb, , & LABT KVM \verb, ,& PV KVM \\ \hline
+
+2p0k	&	0.004	&	0.028	&	0.007	&	0.011	\\ \hline
+2p16k	&	0.007	&	0.034	&	0.013	&	0.012	\\ \hline
+2p32k	&	0.015	&	0.067	&	0.012	&	0.012	\\ \hline
+8p0k	&	0.005	&	0.151	&	0.05	&	0.056	\\ \hline
+8p16k	&	0.023	&	0.331	&	0.097	&	0.096	\\ \hline
+8p32k	&	0.065	&	0.358	&	0.136	&	0.121	\\ \hline
+16p0k	&	0.005	&	0.165	&	0.057	&	0.059	\\ \hline
+16p16k	&	0.048	&	0.366	&	0.129	&	0.122	\\ \hline
+16p32k	&	0.171	&	0.448	&	0.183	&	0.184	\\ \hline
+
+        \hline
+      \end{tabular}
+\label{tab:lpGMKLsmall}
+\end{table*} 
+
+
 \begin{table}[!b]
 \centering
 \caption{Performance of Base KVM}
