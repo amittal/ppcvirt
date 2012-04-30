@@ -156,6 +156,8 @@ tracing mechanisms.
 The paper is organized as
 follows. Section~\ref{sec:performance_char} characterizes the performance of
 KVM on Power Architecture and discusses the typical sources of overhead.
+We discuss the setup of shared address space between the guest and host
+in Section~\ref{sec:sharedspace}.
 Section~\ref{sec:bintrans} discusses our in-place binary translation approach.
 Section~\ref{sec:tracing} discusses our tracing mechanism to maintain guest fidelity.
 We discuss the performance results obtained by
@@ -291,17 +293,52 @@ optimization solution based on in-place binary translation.
      \end{tabular}
 \label{tab:NumPCBase}
 \end{table}
+\section{Shared Guest-Hypervisor Address Space}
+\label{sec:sharedspace}
+Our solution requires setting up a shared address space between the
+guest and the hypervisor to store the emulated
+data and emulated instructions.
+We achieve this by requiring the guest to install a virtual guest
+device driver provided by us. This is the
+only guest-specific change required by our solution. The virtual
+device driver reserves
+one page with read/write privileges in guest address space. This page
+is used by the hypervisor to maintain
+emulated guest registers. The virtual guest device driver also
+reserves one page with execute privileges in guest address space.
+This page is used by the hypervisor to store the binary translator's
+translation cache.
+
+Unlike the parvirtual extensions introduced in Linux, these guest
+modifications are small and non-intrusive. Such guest virtual device drivers
+can also be implemented for closed-source guests.
+
+The execute-only page reserved in guest address space has a special
+constraint. As we explain in the
+next section, this page must be within 32MB of the
+guest kernel's code section, for some translations to be possible.
+Given that most guest kernel code sections are
+small (e.g., XXX MB for Linux), this constraint is not particularly daunting.
+
 \section{In-place Binary Translation}
+\label{sec:bintrans}
 We implement in-place binary translation by replacing the
-exit-causing instruction with an emulating instruction directly
-in the guest's address space.
-\subsection{Shared Address Space}
-Discuss how a shared address space is setup between the guest and the host.
+privileged instructions
+with their emulated counterparts directly
+in the guest's address space. Some of the privileged instructions can
+be emulated by single instructions. For example, {\tt mfmsr} is translated
+to a {\tt load} instruction to the address of the emulated {\tt msr}
+register in the shared read/write page. The opcodes which can be
+translated to single instructions are XXX.
+
+Other opcodes require emulations which involve multiple instructions.
 
 \section{Maintaining Guest Fidelity through Read/Write Tracing}
+\label{sec:tracing}
 Discuss our tracing mechanism.
 
 \section{Experimental Results - I}
+\label{sec:results1}
 Discuss the experimental results obtained after implementing binary translation
 and tracing. 
 \begin{table}[!b]
@@ -334,15 +371,14 @@ and tracing.
 Discuss the sources of overhead, and TLB thrashing.
 
 \section{Further Optimizations}
+\label{sec:tracingopt}
 \subsection{Adaptive TLB splitting/merging}
 \subsection{Optimization of DSI reads} - explaination - tracing of root cause by studying results of nanobenchmark syscall - comparison of results with DM-read
 
 \section{Experimental Results - II}
+\label{sec:results2}
 Compare with base KVM, paravirtual, and baremetal. Discuss sources of overhead. Discuss
 why performance has improved.
-
-\section{Comparison with known x86-based binary translation approach}
-Compare with VMware's x86-based binary translation approach.
 
 \section{Conclusion}
 
