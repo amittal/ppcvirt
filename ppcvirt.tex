@@ -5,7 +5,7 @@
 
 \begin{document}
 
-\title{Efficient Virtualization on Embedded Power Platforms}
+\title{Efficient Virtualization on Embedded Power Architecture}
 \author{}
 \date{}
 \maketitle
@@ -13,7 +13,9 @@
 
 \maketitle
 \begin{abstract}
-  Embedded Power-based processors are popular on embedded systems, and are increasingly
+  Power Architecture is popular and widespread on embedded systems, and such
+  platforms are
+  increasingly
   being used to run virtual machines\cite{XXX}. While the Power architecture meets the
   Popek-and-Goldberg virtualization requirements for traditional trap-and-emulate
   style virtualization, the performance overhead of virtualization remains high.
@@ -21,23 +23,24 @@
   show 3-5x slowdowns over bare-metal.
 
   Recent additions to the Linux kernel contain guest and host side paravirtual
-  extensions for Power. While these extensions improve performance significantly, they
-  are highly guest-intrusive, non-portable and cover only a subset of all possible
+  extensions for Power Architecture. While these extensions improve performance significantly, they
+  are guest-intrusive, non-portable and cover only a subset of all possible
   virtualization optimizations.
 
-  We present a set of host-side optimizations that achieve equal or better performance
+  We present a set of host-side optimizations that achieve comparable
+  or better performance
   than the aforementioned paravirtual extensions, yet being guest-agnostic. Our
   prototype implementation based on Linux/KVM can run (largely) unmodified, untrusted
-  Power guests at near native performance for almost all workloads. The only
+  Power Architecture guests at near native performance for almost all workloads. The only
   guest modification required is to include a device driver for our virtual
-  device which creates a small shared address space between the host and the guest.
+  device which creates a shared address space between the guest and the host.
   After our modifications, KVM can boot a Linux guest 3x faster. Our solution
   provides equivalent performance (sometimes outperforming by up to XX\%) to
-  the paravirtual approach previously included in the Linux kernel, without being
-  guest-specific.
+  the paravirtual approach previously included in the Linux kernel, without
+  being guest-specific.
 \end{abstract}
 \section{Introduction}
-Embedded Power Architecture is a dominant platform for embedded devices for it's
+Power Architecture is a dominant platform for embedded devices for it's
 favourable power/performance characteristics. Virtualization on these platforms is
 compelling for several applications\cite{XXX}. While newer Power platforms
 have explicit support for efficient virtualization\cite{XXX}, a majority of
@@ -45,17 +48,18 @@ prevalent embedded devices run on older (and cheaper) Power platforms that use
 traditional trap-and-emulate style virtualization\cite{XXX}. Hence, efficient
 virtualization is highly desirable on these platforms.
 
-The current virtualization approach on Power platform uses traditional trap-and-emulate.
-The guest operating system is run unprivileged, causing each execution of a privileged
+The current virtualization approach on Power Architecture uses traditional
+trap-and-emulate. The guest operating system is run unprivileged, causing each
+execution of a privileged
 operation to exit into the hypervisor. For guest workloads executing a large number
-of priviliged instructions, these exits can become a major source of performance
-overhead. Table~\ref{tab:kvm_performance} lists the performance of vanilla Linux/KVM
+of priviliged instructions, these exits are a major performance
+bottleneck. Table~\ref{tab:kvm_performance} lists the performance of vanilla Linux/KVM
 on some common workloads.
 
 The poor performance of simple trap-and-emulate style virtualization has led to
-the inclusion of paravirtual virtualization extensions to the Linux kernel on both
+the inclusion of paravirtual extensions to the Linux kernel on both
 guest and host sides. The paravirtual extension in the guest rewrites the guest kernel
-code at load time to replace most privileged instructions with
+code at startup time to replace most privileged instructions with
 hypervisor-aware unprivileged counterparts. The unprivileged version of an
 otherwise privileged guest operation typically reads or writes to a hypervisor-visible
 shared address, thus providing an efficient mechanism for a {\em hypercall}.
@@ -83,30 +87,111 @@ We propose a host-side adaptive binary translation mechanism to optimize guest
 privileged instructions at runtime. Our approach requires almost no guest modifications
 (except a virtual device driver to setup shared address space), and achieves
 comparable or better performance than paravirtual approaches. Because we translate
-guest code at runtime (and not at load time, as done in the paravirtual approach), we
+guest code at runtime (and not at kernel startup time, as done in the paravirtual
+approach), we
 can optimize code in both the main kernel and the loadable modules. Our approach also
 does not assume anything about the guest, and ports seamlessly to different
 guests or different versions of the same guest.
-The last column in Table~\ref{tab:kvm_performance} lists the performance results of
-our host-side binary translation approach.
+The last column in Table~\ref{tab:kvm_performance} summarizes the performance results of
+our host-side binary translation approach. In the rest of the paper, we discuss
+our approach and the various optimizations we used to achieve these results.
 
-Our binary translator is very different from the x86-based binary translator
-previously implemented by VMware. XXX
+We translate the guest's instructions {\em in situ} (in-place), thus modifying the guest's
+address space. This is in contrast with previous full binary translation approaches
+that translate the entire guest
+code (e.g., VMware's x86-based VMM\cite{agesen:comparison}). Our approach is much
+simpler and thus incurs significantly less overhead. For example, a full binary
+translator requires a table lookup on every indirect branch (e.g., function return) which
+can result in high overheads on many common workloads. In contrast, our lightweight
+binary translator simply translates the privileged instructions and allows all other
+instructions to run natively.
 
 There are many interesting problems we solved during the development of our
-binary translation solution. Discuss problems and their brief solutions.
+binary translation solution. 
+Firstly, while modifying guest instructions, we must ensure correctness in presence
+of arbitrary jumps to any instruction. We do this by relying on the fixed-length
+word-aligned nature of Power Architecture instructions. Guest instructions
+that need to be translated to multiple host instructions for correct emulation, are
+handled by jumping to code fragments in a VMM-managed translation cache (full
+details in Section~\ref{sec:binarytranslation}.
+
+Secondly, modifying guest instructions in-place requires the VMM to maintain guest
+fidelity if the guest reads/writes it's own code. We maintain fidelity by 
+marking the pages containing the modified instructions {\em execute-only}. This
+causes the hardware to trap into the VMM on any guest read/write access to the
+modified page.
+
+Thirdly, marking the modified pages execute-only can result in a large number of
+page faults, especially due to false sharing. The problem is particularly
+severe in the embedded Power Architecture which has a software-managed TLB with
+a small number of variable-sized TLB entries. We found that our modifications to
+the guest instructions resulted in a large number of such page faults, thus causing
+another source of performance degradation. We discuss two schemes to correctly
+and efficiently deal with this problem (Section~\ref{sec:reducing_page_faults}).
+
+We rely heavily on some Power Architecture features to implement our
+scheme correctly and efficiently. For example, we use
+Power Architecture's {\tt read-write-execute} page protection bits to ensure guest
+fidelity. In contrast, the x86 architecture provides only {\tt read-only} and
+{\tt no-execute} (NX) bits, which are less powerful, and insufficient
+to implement our scheme. As another
+example, we use Power
+Architecture's fixed-length aligned instruction encoding to be able to
+perform in-place binary translation correctly. Such ideas cannot be used
+on x86 where the guest could potentially jump to the middle of an instruction.
+We find that these subtle
+differences in different architectures greatly impact VMM design. Just like some
+of our aforementioned ideas are not applicable to
+x86, some of the ideas in VMware's x86-based binary translator
+are not applicable to Power Architecture. For example, VMware's binary translator
+relies on x86's segmentation hardware but Power Architecture does not
+support segmentation.
 
 In summary, this paper presents an efficient host-side optimization solution for
-Power virtualization. Our approach is based on binary translation and assumes no
-guest information. The performance of our prototype is similar or better than
-existing paravirtual solutions. We also discuss some interesting challenges we solved,
-which were unique to embedded Power-based platforms. The paper is organized as
-follows. XXX
+Power virtualization. Our approach is based on in-place binary translation.
+The only guest-side modification required by our solution is a virtual
+device driver to map a shared address space between the guest and the host.
+We can run untrusted guests and preserve guest fidelity by implementing efficient
+tracing mechanisms.
+The paper is organized as
+follows. Section~\ref{sec:performance_char} characterizes the performance of
+KVM on Power Architecture and discusses the typical sources of overhead.
+Section~\ref{sec:bintrans} discusses our in-place binary translation approach.
+Section~\ref{sec:tracing} discusses our tracing mechanism to maintain guest fidelity.
+We discuss the performance results obtained by
+implementing these mechanisms in Section~\ref{sec:results1}. Section~\ref{sec:tracingopt}
+discusses further optimizations to make the tracing mechanism more efficient.
+Section~\ref{sec:results2} presents our final performance results, and
+Section~\ref{sec:conclusion} concludes.
 
-\section{Performance Characterization}
-Discuss the performance of base KVM and analyze it (Table \ref{tab:PerfBase}). Talk about the number of exits
-resulting from each type of privileged instruction (Table \ref{tab:NumExitsBase}). Also, talk about the number
-of exits resulting from each PC value (Table \ref{tab:NumPCBase}).
+\section{Performance Characterization of KVM on Power Architecture}
+\label{sec:performance_char}
+We perform our experiments on Linux/KVM version XXX running on an
+embedded Power Architecture processor from Freescale used in network
+routing.
+Table~\ref{tab:kvm_performance} shows the timing characteristics of
+different benchmarks running on KVM on Power Architecture. The
+overhead is due to VM-exits caused by execution of priviliged instructions
+at unprivileged level. Table~\ref{tab:priv_opcodes} lists the privileged
+opcodes and briefly explains their semantics.
+Table~\ref{tab:opcode_time_fraction} shows
+the different benchmarks and the fraction of time spent in handling
+exits due to each opcode respectively. The analysis confirms that a
+majority of the time overhead is being spent in handling VM-exits due
+to privileged opcodes.
+
+We next profile the number of distinct program counter (PC) values that
+cause exits. Figure~\ref{fig:pc_profile} shows a histogram on the number
+of distinct PC values and the frequency of exits on them. These results
+confirm that most of the exits in almost all our benchmarks are caused
+by a small number of distinct PC values. Intuitively, the privileged
+instructions on the hot code paths are the biggest culprits.
+
+The breakdown of performance results in Table~\ref{tab:opcode_time_fraction}
+and Figure~\ref{fig:pc_profile} confirms that optimization of these
+few opcodes occuring at a few distinct PC values is likely to produce
+significant runtime improvements. The next section discusses our
+optimization solution based on in-place binary translation.
 
 \begin{table*}
 \centering
@@ -182,9 +267,10 @@ of exits resulting from each PC value (Table \ref{tab:NumPCBase}).
      \end{tabular}
 \label{tab:NumPCBase}
 \end{table}
-\section{Lightweight Adaptive Binary Translation}
-Discuss our BT implementation. Discuss the different opcodes and their replaced
-counterparts
+\section{In-place Binary Translation}
+We implement in-place binary translation by replacing the
+exit-causing instruction with an emulating instruction directly
+in the guest's address space.
 \subsection{Shared Address Space}
 Discuss how a shared address space is setup between the guest and the host.
 
