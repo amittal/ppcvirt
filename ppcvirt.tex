@@ -2,6 +2,8 @@
 
 \usepackage{times}
 \usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{epstopdf}
 
 \begin{document}
 
@@ -195,26 +197,62 @@ few opcodes occuring at a few distinct PC values is likely to produce
 significant runtime improvements. The next section discusses our
 optimization solution based on in-place binary translation.
 
+\begin{table}[!b]
+\centering
+\caption{Sources of VM Exits}
+     \begin{tabular}{|l | p{5cm} |} \hline
+       Opcode \verb, , & Description \\ \hline
+       MFMSR & Move from machine state register \\ \hline
+       MTMSR & Move to machine state register \\\hline
+	   MFSPR & Move from special purpose register \\\hline
+	   MTSPR & Move to special purpose register \\\hline
+	   WRTEE(I) & Write MSR External Enable  \\\hline
+	   RFI & Return from interrupt \\\hline
+	   $[$DI$]$TLBREAL & guest tlb does not have a mapping for the address\\\hline
+	   $[$DI$]$TLBVIRT & tlb fault due to virtualization. Host tlb does not have a mapping which is present in guest tlb \\    \hline
+   	   DSI & Exits due to access privilege \\\hline
+
+     \end{tabular}
+\label{tab:priv_opcodes}
+\end{table}
+
+\begin{figure}[!htb]
+\centering
+
+\includegraphics[scale=0.5]{exit_count.eps}
+\caption{\% of Total exits}
+\label{fig:opcode_ti_fraction}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+
+\includegraphics[scale=0.5]{pc_count.eps}
+\caption{PC frequency}
+\label{fig:pc_profile}
+\end{figure}
+
 \begin{table*}
 \centering
 \caption{Performance comparison}
-      \begin{tabular}{|l | l| c c c c|} \hline
-     & \multicolumn{5}{c|}{ Running Time in $sec$}\\  
-      S.No.\verb, ,&  Benchmark\verb, ,  & Bare-metal \verb, ,& Base KVM \verb, , & LABT KVM \verb, ,& PV KVM \\ \hline
-      1&  Linux Boot & 6.5	& 30.03	& 12.24	& 11.79 \\
-      2& Echo Spawn	& 1.4	& 21.34 &	7.26 &	6.5 \\
-      3& Find	& 0.39	& 1.89	& 0.71	& 0.67 \\ \hline
-	   & \multicolumn{5}{c|}{Latency in $msec$}\\  \hline
+      \begin{tabular}{|l| l|p{5cm} | c c c c|} \hline
+	        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& Base KVM \verb, , & LABT KVM \verb, ,& PV KVM \\ \hline
 
-  4& syscall	&	0.001	&	0.021	&	0.004	&	0.004	\\
-5&stat	&	0.003	&	0.033	&	0.007	&	0.006	\\
-6&fstat	&	0.001	&	0.021	&	0.005	&	0.004	\\
-7&open/close:	&	0.007	&	0.067	&	0.015	&	0.013	\\
-8&sig hndl	&	0.001	&	0.024	&	0.004	&	0.004	\\
-9&pipe 	&	0.015	&	0.165	&	0.035	&	0.033	\\
-10&fork	&	1.084	&	6.641	&	2.061	&	1.64	\\
-11&exec	&	3.065	&	20.543	&	7.533	&	6.254	\\
-12&sh	&	6.645	&	45.164	&	16.327	&	13.842	\\
+     &&& \multicolumn{4}{c|}{ Running Time in $sec$}\\\cline {4-7}  
+      1&  Linux Boot& linux boot & 6.5	& 30.03	& 12.24	& 11.79 \\ \hline
+      2& Echo Spawn	& Spawning a large number of echo processes&1.4	& 21.34 &	7.26 &	6.5 \\\hline
+      3& Find	& find / -name temp & 0.39	& 1.89	& 0.71	& 0.67 \\ \cline{4-7}
+	   &&& \multicolumn{4}{c|}{Latency in $msec$}\\  \cline{4-7}
+
+  4& syscall	& &	0.001	&	0.021	&	0.004	&	0.004	\\\hline
+5&stat	&&	0.003	&	0.033	&	0.007	&	0.006	\\\hline
+6&fstat	&&	0.001	&	0.021	&	0.005	&	0.004	\\\hline
+7&open/close:	&&	0.007	&	0.067	&	0.015	&	0.013	\\\hline
+8&sig hndl	&&	0.001	&	0.024	&	0.004	&	0.004	\\\hline
+9&pipe 	&&	0.015	&	0.165	&	0.035	&	0.033	\\\hline
+10&fork	&&	1.084	&	6.641	&	2.061	&	1.64	\\\hline
+11&exec	&&	3.065	&	20.543	&	7.533	&	6.254	\\\hline
+12&sh	&&	6.645	&	45.164	&	16.327	&	13.842	\\\hline
 
         \hline
       \end{tabular}
