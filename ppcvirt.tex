@@ -96,7 +96,7 @@ The last column in Table~\ref{tab:kvm_performance} summarizes the performance re
 our host-side binary translation approach. In the rest of the paper, we discuss
 our approach and the various optimizations we used to achieve these results.
 
-We translate the guest's instructions {\em in situ}, thus modifying the guest's
+We translate the guest's instructions {\em in situ} (in-place), thus modifying the guest's
 address space. This is in contrast with previous full binary translation approaches
 that translate the entire guest
 code (e.g., VMware's x86-based VMM\cite{agesen:comparison}). Our approach is much
@@ -115,7 +115,7 @@ that need to be translated to multiple host instructions for correct emulation, 
 handled by jumping to code fragments in a VMM-managed translation cache (full
 details in Section~\ref{sec:binarytranslation}.
 
-Secondly, modifying guest instructions {\em in situ} requires the VMM to maintain guest
+Secondly, modifying guest instructions in-place requires the VMM to maintain guest
 fidelity if the guest reads/writes it's own code. We maintain fidelity by 
 marking the pages containing the modified instructions {\em execute-only}. This
 causes the hardware to trap into the VMM on any guest read/write access to the
@@ -148,7 +148,7 @@ relies on x86's segmentation hardware but Power Architecture does not
 support segmentation.
 
 In summary, this paper presents an efficient host-side optimization solution for
-Power virtualization. Our approach is based on in-situ binary translation.
+Power virtualization. Our approach is based on in-place binary translation.
 The only guest-side modification required by our solution is a virtual
 device driver to map a shared address space between the guest and the host.
 We can run untrusted guests and preserve guest fidelity by implementing efficient
@@ -156,7 +156,7 @@ tracing mechanisms.
 The paper is organized as
 follows. Section~\ref{sec:performance_char} characterizes the performance of
 KVM on Power Architecture and discusses the typical sources of overhead.
-Section~\ref{sec:bintrans} discusses our in-situ binary translation approach.
+Section~\ref{sec:bintrans} discusses our in-place binary translation approach.
 Section~\ref{sec:tracing} discusses our tracing mechanism to maintain guest fidelity.
 We discuss the performance results obtained by
 implementing these mechanisms in Section~\ref{sec:results1}. Section~\ref{sec:tracingopt}
@@ -164,10 +164,34 @@ discusses further optimizations to make the tracing mechanism more efficient.
 Section~\ref{sec:results2} presents our final performance results, and
 Section~\ref{sec:conclusion} concludes.
 
-\section{Performance Characterization}
-Discuss the performance of base KVM and analyze it (Table \ref{tab:PerfBase}). Talk about the number of exits
-resulting from each type of privileged instruction (Table \ref{tab:NumExitsBase}). Also, talk about the number
-of exits resulting from each PC value (Table \ref{tab:NumPCBase}).
+\section{Performance Characterization of KVM on Power Architecture}
+\label{sec:performance_char}
+We perform our experiments on Linux/KVM version XXX running on an
+embedded Power Architecture processor from Freescale used in network
+routing.
+Table~\ref{tab:kvm_performance} shows the timing characteristics of
+different benchmarks running on KVM on Power Architecture. The
+overhead is due to VM-exits caused by execution of priviliged instructions
+at unprivileged level. Table~\ref{tab:priv_opcodes} lists the privileged
+opcodes and briefly explains their semantics.
+Table~\ref{tab:opcode_time_fraction} shows
+the different benchmarks and the fraction of time spent in handling
+exits due to each opcode respectively. The analysis confirms that a
+majority of the time overhead is being spent in handling VM-exits due
+to privileged opcodes.
+
+We next profile the number of distinct program counter (PC) values that
+cause exits. Figure~\ref{fig:pc_profile} shows a histogram on the number
+of distinct PC values and the frequency of exits on them. These results
+confirm that most of the exits in almost all our benchmarks are caused
+by a small number of distinct PC values. Intuitively, the privileged
+instructions on the hot code paths are the biggest culprits.
+
+The breakdown of performance results in Table~\ref{tab:opcode_time_fraction}
+and Figure~\ref{fig:pc_profile} confirms that optimization of these
+few opcodes occuring at a few distinct PC values is likely to produce
+significant runtime improvements. The next section discusses our
+optimization solution based on in-place binary translation.
 
 \begin{table}[!b]
 \centering
@@ -218,9 +242,10 @@ of exits resulting from each PC value (Table \ref{tab:NumPCBase}).
      \end{tabular}
 \label{tab:NumPCBase}
 \end{table}
-\section{Lightweight Adaptive Binary Translation}
-Discuss our BT implementation. Discuss the different opcodes and their replaced
-counterparts
+\section{In-place Binary Translation}
+We implement in-place binary translation by replacing the
+exit-causing instruction with an emulating instruction directly
+in the guest's address space.
 \subsection{Shared Address Space}
 Discuss how a shared address space is setup between the guest and the host.
 
