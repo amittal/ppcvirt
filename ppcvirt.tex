@@ -131,7 +131,7 @@ the guest instructions resulted in a large number of such page faults, thus caus
 another source of performance degradation. We discuss two schemes to correctly
 and efficiently deal with this problem (Section~\ref{sec:reducing_page_faults}).
 
-We rely heavily on some Power Architecture features to implement our
+We rely on Power Architecture features to implement our
 scheme correctly and efficiently. For example, we use
 Power Architecture's {\tt read-write-execute} page protection bits to ensure guest
 fidelity. In contrast, the x86 architecture provides only {\tt read-only} and
@@ -353,10 +353,10 @@ can also be implemented for closed-source guests.
 
 The execute-only page reserved in guest address space has a special
 constraint. As we explain in the
-next section, this page must be within 32MB of the
-guest kernel's code section, for some translations to be possible.
+next section, this page must lie within 32MB of the
+guest kernel's code section, for certain translations to be possible.
 Given that most guest kernel code sections are
-small (e.g., XXX MB for Linux), this constraint is not particularly daunting.
+small (e.g., XXX MB for Linux), this constraint is usually easy to satisfy.
 
 \section{In-place Binary Translation}
 \label{sec:bintrans}
@@ -369,7 +369,55 @@ to a {\tt load} instruction to the address of the emulated {\tt msr}
 register in the shared read/write page. The opcodes which can be
 translated to single instructions are XXX.
 
-Other opcodes require emulations which involve multiple instructions.
+Other privileged opcodes require emulations which involve multiple instructions.
+For such opcodes, we store the emulation code in the translation cache, and
+patch the original instruction to branch to it. We call the privileged instruction
+that was patched, the {\em patch-site}. The emulation code is terminated
+with a branch back to the instruction following the patch-site
+(see Figure~\ref{fig:txcache}). Because each patch-site requires a different
+terminating branch instruction, a new translation is generated for
+each patch-site.
+
+We use Power Architecture's unconditional direct {\tt branch} opcode to jump to the
+translation cache from the patch-site. The {\tt branch} opcode specifies a 24-bit
+branch offset, with either absolute or relative addressing. This constrains us
+to place the emulation code either within a 24-bit distance of the patch-site (i.e.,
+$\pm$16MB) or in the top or bottom 16MB of the guest's virtual address
+space (see Figure~\ref{fig:branchtargets}). We ensure this by mapping the shared
+page containing our translation cache within $\pm$16MB of the kernel's code
+section (as also mentioned in Section~\ref{sec:sharedspace}).
+
+We investigated at least two other possibilities to avoid this constraint
+on the branch instruction. In our first attempt, we tried placing the
+translation cache on a page in the top 16MB of the kernel's virtual address
+space. This allows the {\tt branch} opcode to reach the emulation code from
+the patch-site using absolute addressing. However, the emulation code needs to
+jump back to the instruction following the branch opcode. This jump-back must not
+clobber a guest's register as the register could be potentially live. Because
+the target of the jump-back can be arbitrary (anywhere in kernel code), we concluded
+that there is no way to achieve this by simply using a direct {\tt branch} opcode.
+
+In our second attempt, we tried using the hardware link register {\tt lr} to store
+the address
+of the jump-back target. We patched the privileged instruction with a {\tt bl}
+instruction to the emulation code and terminated our emulation code with a {\tt blr}
+instruction. One advantage of this approach is that it is possible to
+reuse one emulation code
+for multiple patch-sites containing the same privileged instruction (because the
+terminating instruction {\tt blr} is now independent of the patch-site). However, in
+doing so, we
+clobber the {\tt lr} register. We experimentally found that this can cause
+guest inconsistencies in Linux as {\tt lr} is often at patch-sites.
+We next tried saving/restoring the
+{\tt lr} register at the patch-site before/after branching to the emulation code.
+To do this, we patched not just the privileged instruction but also 1-2
+surrounding instructions (see Figure~\ref{fig:multiple_insns_patching}). The
+surrounding instructions are made part of the emulation code to preserve
+guest behaviour. This can
+be done safely only if the surrounding instructions are not control-flow instructions.
+However, this fails if the guest jumps to the middle of our
+three-instruction translation. We discarded this approach because in the presence
+of indirect branches, the guest can potentially jump to any instruction boundary.
 
 \section{Maintaining Guest Fidelity through Read/Write Tracing}
 \label{sec:tracing}
