@@ -444,7 +444,8 @@ to place the emulation code either within a 24-bit distance of the patch-site (i
 $\pm$16MB) or in the top or bottom 16MB of the guest's virtual address
 space (see Figure~\ref{fig:branchtargets}). We ensure this by mapping the shared
 page containing our translation cache within $\pm$16MB of the kernel's code
-section (as also mentioned in Section~\ref{sec:sharedspace}).
+section (as also mentioned in Section~\ref{sec:sharedspace}). XXX Discuss loadable
+modules and how they are handled.
 
 We investigated at least two other possibilities to avoid this constraint
 on the branch instruction. In our first attempt, we tried placing the
@@ -491,8 +492,9 @@ Changing instructions in the guest address space can cause
 inconsistencies if the guest tries to read or write it's own code.
 For this reason, we protect the pages containing patch-sites with hardware
 page-protection bits. Embedded Power Architecture provides three {\tt rwx}
-protection bits per page. Using these bits, we mark a guest page containing a patch-site
-execute only, by setting {\tt r} and {\tt w} bits to 0 and {\tt x} bit to 1.
+protection bits per page for both user/supervisor privilege levels. Using these
+bits, we mark a guest page containing a patch-site
+execute only in user mode, by setting {\tt r} and {\tt w} bits to 0 and {\tt x} bit to 1.
 Any execution of an instruction on this page proceeds uninterrupted
 but any read or write access causes a VM exit (page fault).
 On a page fault, the hypervisor
@@ -523,9 +525,10 @@ We found that the large number of exits due to read/write tracing were primarily
 due to false sharing. Typically, guest kernel data resides on the same page as
 guest kernel code, which causes a large number of VM exits. The problem is
 worse on embedded Power Architecture due to the presence of {\em huge} pages.
-Power Architecture (embedded versions) typically have small software-managed
-TLBs with variable-sized pages. Operating systems typically use huge pages to
-minimize the number of TLB misses, which exacerbates false sharing problems for
+Embedded Power Architecture has small software-managed
+TLB caches with variable-sized pages. Operating systems typically use huge pages for
+kernel pages to
+minimize the number of TLB entries, which exacerbates false sharing problems for
 our optimizations.
 
 We implement two mechanisms to offset this tracing overhead. Our first mechanism
@@ -537,8 +540,54 @@ a separate page from the patch-sites to avoid tracing page faults. We discuss
 both optimizations below.
 
 \subsection{Adaptive TLB Resizing}
-The software-managed TLB on embedded Power Architecture can hold up to 16 TLB
-entries. Each entry can have 
+Typical TLB sizes on embedded Power Architecture processors are small.
+For example, the software-managed TLB on our system is a combination of a 16-entry
+fully-associative cache of variable-sized page table entries
+and a 512-entry 4-way set-associative fixed-size (4KB) page table entries.
+A faster L1 TLB lookup cache is implemented in hardware, and all invalidations
+to maintain consistency with the software-programmed L2 TLB are done automatically.
+The variable-pagesize TLB cache supports 11 different page sizes: 4K, 16K, 64K,
+256K, 1M, 4M, 16M, 64M, 256M, 1G, and 4G. Further a page of size S must be S-byte
+aligned in physical and virtual address spaces.
+
+An operating system typically tries to use large TLB entries for kernel address space to
+reduce TLB pressure. For example, our Linux guest
+uses just one TLB entry of size 256MB to map all its code and data sections.
+Disabling read/write privileges from this TLB entry predictably causes an unacceptably
+large number of page faults (every kernel data access becomes a page fault).
+
+We resize TLB entries to deal with this overhead of page faults due to read/write
+tracing. On patching a privileged guest instruction, we {\em break} the TLB entry
+containing this guest instruction into smaller TLB entries. After breaking,
+we only mark the
+TLB entry containing the patch-site execute-only, and leave the remaining
+unmodified.
+
+The smallest TLB entry
+is the one containing the patch-site. The other TLB entries are sized to minimize
+the overall number of TLB entries. For example, assume that the kernel has mapped
+itself using a 256MB TLB entry at (0xc0000000,0xd0000000), and a
+patch is to be applied at address 0xc0801234. Assuming that the patch-site is broken
+into a 4MB page, the new set of TLB entries will be
+(0xc0000000,0xc0800000);(0xc0800000,0xc0c00000);(0xc0c00000,0xc1000000);
+(0xc1000000,0xc2000000);(0xc2000000,0xc4000000);(0xc4000000,0xc8000000);
+(0xc8000000,0xd0000000). Notice that a single patch will typically result
+in multiple smaller TLB entries due to alignment restrictions.
+
+The page size of smallest TLB entry, containing the patch-site, needs to be chosen
+wisely.
+A large page size can cause more page faults in future.
+A small page size can result in a large number of TLB entries, which can potentially
+result in TLB thrashing. This three-way trade-off between the number of
+privileged exits, the number of tracing page faults, and TLB thrashing is
+delicate and requires careful performance tuning.
+
+We use the following policy. On a page fault, the size of the page
+containing the patch-site is halved, until a minimum of 256KB-sized pages.
+The lower bound on page size (256K) limits the maximum number of TLB entries.
+TLB entries with identical privileges are also opportunistically merged into
+larger TLB entries. For example, merging happens when all patch-sites are
+removed from a page, and it has identical {\tt rwx} privileges as its neighbour.
 
 \subsection{Avoiding Read Page Faults}
 Discuss our solution to copying data from traced pages and translating read-access
