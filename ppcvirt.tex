@@ -569,34 +569,77 @@ the overall number of TLB entries. For example, assume that the kernel has mappe
 itself using a 256MB TLB entry at (0xc0000000,0xd0000000), and a
 patch is to be applied at address 0xc0801234. Assuming that the patch-site is broken
 into a 4MB page, the new set of TLB entries will be
-(0xc0000000,0xc0800000);(0xc0800000,0xc0c00000);(0xc0c00000,0xc1000000);
-(0xc1000000,0xc2000000);(0xc2000000,0xc4000000);(0xc4000000,0xc8000000);
+(0xc0000000,0xc0800000);(0xc0800000,0xc0c00000);
+(0xc0c00000,0xc1000000);(0xc1000000,0xc2000000);
+(0xc2000000,0xc4000000);(0xc4000000,0xc8000000);
 (0xc8000000,0xd0000000). Notice that a single patch will typically result
 in multiple smaller TLB entries due to alignment restrictions.
-
-The page size of smallest TLB entry, containing the patch-site, needs to be chosen
-wisely.
-A large page size can cause more page faults in future.
-A small page size can result in a large number of TLB entries, which can potentially
-result in TLB thrashing. This three-way trade-off between the number of
+It is evident that the page size of smallest TLB entry should be kept as large
+as possible to reduce
+TLB pressure. This three-way trade-off between the number of
 privileged exits, the number of tracing page faults, and TLB thrashing is
 delicate and requires careful performance tuning.
 
-We use the following policy. On a page fault, the size of the page
-containing the patch-site is halved, until a minimum of 256KB-sized pages.
+We use the following policy to determine the size of the smaller TLB entries. On the
+creating of a new patch-site (due to a VM-exit on a privileged instruction) or a
+page fault due to read/write tracing,
+the size of the page
+containing the corresponding patch-site is halved, subject to
+a minimum page size of 256K.
 The lower bound on page size (256K) limits the maximum number of TLB entries.
-TLB entries with identical privileges are also opportunistically merged into
-larger TLB entries. For example, merging happens when all patch-sites are
-removed from a page, and it has identical {\tt rwx} privileges as its neighbour.
+
+To reduce TLB pressure, TLB entries with identical privileges are
+opportunistically merged into
+larger entries. For example, neighbouring TLB entries are merged if the
+removal of a patch-site due to translation cache replacement causes
+them to have identical {\tt rwx} privileges.
 
 \subsection{Avoiding Read Page Faults}
-Discuss our solution to copying data from traced pages and translating read-access
-instructions
+Adaptive TLB resizing significantly reduces the number of page faults. For
+example, a Linux guest boots in 13.29 seconds (as opposed to 30.03 seconds on
+unmodified KVM) with in-place binary translation
+and adaptive TLB resizing for read/write tracing. Without adaptive TLB resizing,
+the guest livelocks at boot time due to the large number of
+page faults.
 
-Discuss that the pages containing the translated read-access instructions also need
-to be traced. This can trigger a cycle. Fortunately, this cycle converges after
-two iterations on a Linux guest. We expect this to be the common case as most kernel code
-is likely to be colocated.
+We still observe 10-20\% performance degradation due
+to tracing-induced page faults. A major source of such page faults
+are function dispatch tables and exception handler tables which are often
+colocated with kernel code and require read accesses. Often these tables share
+the same 256KB region as the privileged kernel code accessing them, rendering our
+adaptive TLB resizing algorithm ineffective.
+
+We avoid these faults by dynamically monitoring such page faults, adaptively
+copying the data being accessed to hypervisor-managed shared address space, and
+translating the instructions accessing this data to access from the new location.
+This optimization prevents future page faults on this data.
+
+This optimization is triggered if the number of tracing-related page faults
+due to a certain instruction exceeds a threshold. In this case, the data being
+accessed is copied
+to a ``data cache'' maintained in the read/write shared address space containing
+the guest's emulated register state. The faulting instruction is replaced with
+code to check the data cache for the address being read. If the check succeeds, the
+data is read from the cache, thus avoiding a page fault. If the check fails, the
+instruction is executed unmodified, resulting in a page fault, just as before.
+This translation code of the faulting instruction is stored in the translation
+cache (maintained in the shared guest-hypervisor address space) and the faulting
+instruction is replaced with a branch to this code.
+
+To maintain guest fidelity, the pages containing patches for
+instructions causing tracing-induced page faults need to be read/write traced as
+well. This can potentially result in a chain-effect: tracing of these new pages
+can cause more page faults, resulting in more patching to be performed, and so on\ldots
+Fortunately, we do not see this chain effect in practice. The faulting instructions
+that are patched typically reside on the same
+page as the original privileged instructions that were patched, causing this
+cycle to converge immediately (because these pages are already traced). Even if
+the patching of the faulting instructions requires a new read/write trace to be
+created, we expect this
+cycle to converge in 1-2 iterations. Intuitively, kernel code which causes privileged
+VM-exits or tracing-induced page faults is likely to be close, and will eventually
+lead to a small set of traced pages. We observed this behaviour in all our experiments
+with Linux guests.
 
 \section{Experimental Results}
 \label{sec:results}
