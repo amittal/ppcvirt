@@ -232,12 +232,12 @@ optimization solution based on in-place binary translation.
 \begin{table*}
 \centering
 \caption{Performance comparison}
-      \begin{tabular}{|l| l|p{5cm} | c c c c|} \hline
+      \begin{tabular}{|l| l|p{5cm} | r r r r|} \hline
 	        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& Base KVM \verb, , & LABT KVM \verb, ,& PV KVM \\ \hline
 
      &&& \multicolumn{4}{c|}{ Running Time in $sec$}\\\cline {4-7}  
-      1&  Linux Boot& linux boot & 6.5	& 30.03	& 12.24	& 11.79 \\ \hline
-      2& Echo Spawn	& Spawning a large number of echo processes&1.4	& 21.34 &	7.26 &	6.5 \\\hline
+      1&  Linux Boot& linux boot & 6.50	& 30.03	& 12.24	& 11.79 \\ \hline
+      2& Echo Spawn	& Spawning a large number of echo processes&1.40	& 21.34 &	7.26 &	6.50 \\\hline
       3& Find	& find / -name temp & 0.39	& 1.89	& 0.71	& 0.67 \\ \cline{4-7}
 	   &&& \multicolumn{4}{c|}{Latency in $msec$}\\  \cline{4-7}
 
@@ -247,9 +247,16 @@ optimization solution based on in-place binary translation.
 7&open/close:	&&	0.007	&	0.067	&	0.015	&	0.013	\\\hline
 8&sig hndl	&&	0.001	&	0.024	&	0.004	&	0.004	\\\hline
 9&pipe 	&&	0.015	&	0.165	&	0.035	&	0.033	\\\hline
-10&fork	&&	1.084	&	6.641	&	2.061	&	1.64	\\\hline
+10&fork	&&	1.084	&	6.641	&	2.061	&	1.640	\\\hline
 11&exec	&&	3.065	&	20.543	&	7.533	&	6.254	\\\hline
 12&sh	&&	6.645	&	45.164	&	16.327	&	13.842	\\\hline
+&&& \multicolumn{4}{c|}{Number of loops per $sec$}\\  \cline{4-7}
+
+13	&	spawn	& &	4424	&	247	&	781	&	943	\\	\hline
+14	&	syscall	& &	781996	&	12485	&	76200	&	81894	\\	\hline
+15	&	context1	& &	40857	&	6075	&	22579	&	30714	\\	\hline
+16	&	hanoi	& &	897272	&	868940	&	884326	&	884666	\\	\hline
+17	&	pipe	& &	341137	&	18821	&	106809	&	111180	\\	\hline
 
         \hline
       \end{tabular}
@@ -328,6 +335,57 @@ optimization solution based on in-place binary translation.
      \end{tabular}
 \label{tab:NumPCBase}
 \end{table}
+
+
+\begin{table}[!b]
+\centering
+\caption{Tracing overhead optimizations - Appraoches}
+     \begin{tabular}{|l | p{5cm} |} \hline
+       Approach \verb, , & Description \\ \hline
+       Without-Opt & without “adaptive TLB resizing” and“avoiding read page faults” \\ \hline
+       Avoid-RPF & only “avoiding read page faults” \\\hline
+	   Adapt-TLB & Only “adaptive TLB resizing”  \\\hline
+	   Adapt-TLB-patch & Only “adaptive TLB resizing” AND removal all the privileged exits from page 0xc0000000 so it will act as a data page only.\\\hline
+
+     \end{tabular}
+\label{tab:diff_approaches}
+\end{table}
+
+\begin{table*}
+\centering
+\caption{Performance comparison: Refer Table \ref{tab:diff_approaches}}
+      \begin{tabular}{|l|  r r r r|} \hline
+	         Benchmark\verb, ,& Without-Opt \verb, ,& Avoid-RPF \verb, , & Adapt-TLB \verb, ,& Adapt-TLB-patch \\ \hline
+
+     & \multicolumn{4}{c|}{ Running Time in $sec$}\\ \cline {2-5}  
+     Linux boot	&	13.1	&	12.24	&	13.29	&	13.18	\\
+Echo Spawn	&	8.25	&	7.26	&	7.93	&	7.87	\\
+Find	&	0.92	&	0.71	&	1.15	&	1.28	\\ \cline{2-5}
+	   
+     & \multicolumn{4}{c|}{Latency in $msec$}\\  \cline{2-5}
+syscall	&	0.008	&	0.003	&	0.01	&	0.01	\\
+stat	&	0.012	&	0.007	&	0.006	&	0.006	\\
+fstat	&	0.009	&	0.004	&	0.004	&	0.004	\\
+open/close:	&	0.024	&	0.014	&	0.031	&	0.032	\\
+sig hndl	&	0.009	&	0.004	&	0.004	&	0.004	\\
+pipe 	&	0.054	&	0.034	&	0.135	&	0.107	\\
+fork	&	2.24	&	2.061	&	2.823	&	2.342	\\
+exec	&	8.384	&	7.533	&	8.849	&	9.619	\\
+sh	&	17.615	&	16.327	&	21.813	&	16.952	\\ \cline{2-5}
+     & \multicolumn{4}{c|}{Number of loops per $sec$}\\  \cline{2-5}
+
+spawn	&	690	&	781	&	750	&	756	\\
+syscall	&	32338	&	76200	&	73984	&	74687	\\
+context1	&	18378	&	22579	&	9983	&	10842	\\
+hanoi	&	883299	&	884326	&	882355	&	882583	\\
+pipe	&	53289	&	106809	&	101188	&	102150	\\
+	
+
+        \hline
+      \end{tabular}
+\label{tab:perf_approaches}
+\end{table*} 
+
 \section{Shared Guest-Hypervisor Address Space}
 \label{sec:sharedspace}
 Our solution requires setting up a shared address space between the
@@ -493,6 +551,7 @@ is likely to be colocated.
 
 \section{Experimental Results}
 \label{sec:results}
+Refer Table \ref{tab:perf_approaches}\\
 Present results without ``adaptive TLB resizing'' and ``avoiding read page faults''.
 
 Present results with ``adaptive TLB resizing'' and ``avoiding read page faults''.
