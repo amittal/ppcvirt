@@ -131,24 +131,6 @@ the guest instructions resulted in a large number of such page faults, thus caus
 another source of performance degradation. We discuss two schemes to correctly
 and efficiently deal with this problem (Section~\ref{sec:reducing_page_faults}).
 
-We rely on Power Architecture features to implement our
-scheme correctly and efficiently. For example, we use
-Power Architecture's {\tt read-write-execute} page protection bits to ensure guest
-fidelity. In contrast, the x86 architecture provides only {\tt read-only} and
-{\tt no-execute} (NX) bits, which are less powerful, and insufficient
-to implement our scheme. As another
-example, we use Power
-Architecture's fixed-length aligned instruction encoding to be able to
-perform in-place binary translation correctly. Such ideas cannot be used
-on x86 where the guest could potentially jump to the middle of an instruction.
-We find that these subtle
-differences in different architectures greatly impact VMM design. Just like some
-of our aforementioned ideas are not applicable to
-x86, some of the ideas in VMware's x86-based binary translator
-are not applicable to Power Architecture. For example, VMware's binary translator
-relies on x86's segmentation hardware but Power Architecture does not
-support segmentation.
-
 In summary, this paper presents an efficient host-side optimization solution for
 Power virtualization. Our approach is based on in-place binary translation.
 The only guest-side modification required by our solution is a virtual
@@ -734,9 +716,47 @@ taken to settle on a stable TLB configuration.
 
 \section{Discussion}
 \subsection{Multiprocessors}
-\subsection{Comparison with Full Binary Translation}
-\section{Conclusion}
+We present our experiments and results on a uniprocessor system but the
+ideas are equally relevant to a multiprocessor system. For a multiprocessor
+guest/host, these optimizations must be implemented for each virtual CPU (VCPU).
+To reduce synchronization
+overheads, separate translation and data caches must be maintained for each VCPU.
+This minimizes synchronization overheads at the potential cost of marginally higher
+space overheads. We expect
+our optimizations to show equivalent performance improvements on a multiprocessor.
+\subsection{Comparison with x86-based Binary Translation}
+VMware's x86-based binary translator\cite{agesen:comparison} is perhaps the closest
+to our system.
 
+We rely on Power Architecture features to implement our
+scheme correctly and efficiently. For example, we use
+Power Architecture's {\tt read-write-execute} page protection bits to ensure guest
+fidelity. In contrast, the x86 architecture provides only {\tt read-only} and
+{\tt no-execute} (NX) bits, which are less powerful, and insufficient
+to implement our scheme. As another
+example, we use Power
+Architecture's fixed-length aligned instruction encoding to be able to
+perform in-place binary translation correctly. Such ideas cannot be used
+on x86 where the guest could potentially jump to the middle of an instruction.
+We find that these subtle
+differences in different architectures greatly impact VMM design. Just like some
+of our aforementioned ideas are not applicable to
+x86, some of the ideas in VMware's x86-based binary translator
+are not applicable to Power Architecture. For example, VMware's binary translator
+relies on x86's segmentation hardware but Power Architecture does not
+support segmentation.
+
+\subsection{Related Work}
+Discuss Paravirtualization\\
+Discuss Dynamo\\
+Discuss DynamoRio, Valgrind, etc.\\
+\section{Conclusion}
+We discuss the design and implementation of an efficient virtualization solution
+for embedded Power Architecture. We propose and validate three important optimizations
+for efficient virtualization, namely {\em in-place binary translation and read/write
+tracing}, {\em adaptive TLB resizing}, and {\em avoiding read page faults}. 
+The Linux/KVM-based prototype system developed on these ideas shows significant
+performance improvements over common workloads.
 \bibliography{millirollbacks}
 \bibliographystyle{abbrv}
 
