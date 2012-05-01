@@ -550,7 +550,21 @@ The variable-pagesize TLB cache supports 11 different page sizes: 4K, 16K, 64K,
 256K, 1M, 4M, 16M, 64M, 256M, 1G, and 4G. Further a page of size S must be S-byte
 aligned in physical and virtual address spaces.
 
-An operating system typically tries to use large TLB entries for kernel address space to
+The hypervisor traps guest's accesses to the TLB, and creates appropriate
+{\em shadow TLB entries}. These shadow entries are loaded into hardware
+while the guest is
+running. This mechanism is similar to the hardware-managed shadow page
+tables used in x86\cite{agesen:comparison}. The guest cannot access the shadow
+TLB entries, as guest's accesses to the TLB entries are trapped and emulated by
+the hypervisor. This allows the hypervisor full flexibility in choosing the
+size and privileges of it's shadow TLB entries. For example, the hypervisor
+can setup multiple shadow TLB entries to back a single guest TLB entry.
+To reduce TLB pressure, the hypervisor should ideally
+use the minimum possible number of shadow TLB entries. This usually implies having
+one shadow TLB entry per guest TLB entry. We implement read/write tracing by disabling
+read/write privileges in the shadow TLB entry.
+
+OS typically tries to use large TLB entries for kernel address space to
 reduce TLB pressure. For example, our Linux guest
 uses just one TLB entry of size 256MB to map all its code and data sections.
 Disabling read/write privileges from this TLB entry predictably causes an unacceptably
@@ -641,17 +655,48 @@ VM-exits or tracing-induced page faults is likely to be close, and will eventual
 lead to a small set of traced pages. We observed this behaviour in all our experiments
 with Linux guests.
 
+Finally, we note that this optimization is only valid for read accesses. For write
+accesses, we must perform the update at the original data location, as other
+instructions (which have not been translated to access the new data location) may
+read from the original location.
 \section{Experimental Results}
 \label{sec:results}
-Refer Table \ref{tab:perf_approaches}\\
-Present results without ``adaptive TLB resizing'' and ``avoiding read page faults''.
+In summary, we have implemented the following optimizations in Linux/KVM:
+\begin{enumerate}
+  \item In-place Binary Translation and Read/Write Tracing
+  \item Adaptive TLB Resizing
+  \item Avoiding Read Page Faults by copying data and translating faulting instructions
+\end{enumerate}
+We perform experiments to measure the performance improvements through these
+optimizations. Optimization \#1 results in reduced number of VM exits due
+to privileged instructions. For a guest/hypervisor using small pages, this results
+in performance improvements. Most guests however use large pages to prevent
+TLB thrashing. Tracing large pages causes a page fault on each kernel data access.
+This leads to unacceptably low performance. For example, a Linux guest boot livelocks
+on such a system.
 
-Present results with ``adaptive TLB resizing'' and ``avoiding read page faults''.
+Optimization 2 adaptively resizes the shadow TLB entries to reduce
+the number of tracing-induced page faults and results in
+performance improvements over unmodified KVM. The XXX column
+in Table~\ref{tab:detailed_results} shows the performance of KVM with Optimizations
+1 and 2.
+Different workloads show different improvements. The improvement primarily depends
+on the reduction in the number of VM-exits due to privileged instructions and
+increase in page faults due to read/write tracing.
+Table~\ref{tab:vm_exit_stats} shows the number of
+privilged-instruction VM-exits and tracing-induced page faults for each workload
+before and after our optimizations. XXX Discuss the changes in the number
+of VM exits and page faults for different workloads.
+For many workloads, the increase in tracing-induced page faults leads
+to significant (around 10\% for Linux guest boot) performance overhead.
 
-Present results with only ``avoiding read page faults''.
+Optimization 3 further reduces the number of tracing-induced page faults by
+making copies of frequently read data residing in traced pages. The XXX column in
+Table~\ref{tab:vm_exit_stats} shows the number of tracing-induced page faults
+after implementing Optimization 3. The corresponding performance improvements
+are shown in Table~\ref{tab:detailed_results}. XXX Discuss the changes in the number
+of page faults for different workloads.
 
-Present results with only ``adaptive TLB resizing''. Discuss the syscall nanobenchmark
-which really benefits from adaptive TLB resizing.
 
 \begin{table}[!b]
 \centering
@@ -678,6 +723,14 @@ which really benefits from adaptive TLB resizing.
      \end{tabular}
 \label{tab:ExpWithout2}
 \end{table}
+
+We next measure the overhead of our adaptive TLB resizing algorithm. We recorded
+the configuration of shadow TLB entries decided by our adaptive algorithm, and
+then repeated the experiment by forcing the same configuration statically. The
+difference between the two is a measure of the overhead of our adaptive TLB
+resizing algorithm. Table~\ref{tab:adaptive_tlb_resizing} presents our results.
+Typical overheads are 1-2\%, and are primarily due to the few extra page faults
+taken to settle on a stable TLB configuration.
 
 \section{Discussion}
 \subsection{Multiprocessors}
