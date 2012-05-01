@@ -162,11 +162,8 @@ We discuss the setup of shared address space between the guest and host
 in Section~\ref{sec:sharedspace}.
 Section~\ref{sec:bintrans} discusses our in-place binary translation approach.
 Section~\ref{sec:tracing} discusses our tracing mechanism to maintain guest fidelity.
-We discuss the performance results obtained by
-implementing these mechanisms in Section~\ref{sec:results1}. Section~\ref{sec:tracingopt}
-discusses further optimizations to make the tracing mechanism more efficient.
-Section~\ref{sec:results2} presents our final performance results, and
-Section~\ref{sec:conclusion} concludes.
+Section~\ref{sec:results} presents our performance results, and
+finally Sections~\ref{sec:discussion}-\ref{sec:conclusion} conclude.
 
 \section{Performance Characterization of KVM on Power Architecture}
 \label{sec:performance_char}
@@ -481,11 +478,29 @@ to access the copied data (instead of the original). The copied data is placed o
 a separate page from the patch-sites to avoid tracing page faults. We discuss
 both optimizations below.
 
-\subsection{Adaptive TLB splitting/merging}
+\subsection{Adaptive TLB Resizing}
+The software-managed TLB on embedded Power Architecture can hold up to 16 TLB
+entries. Each entry can have 
 
-\subsection{Optimization of DSI reads} - explaination - tracing of root cause by studying results of nanobenchmark syscall - comparison of results with DM-read
+\subsection{Avoiding Read Page Faults}
+Discuss our solution to copying data from traced pages and translating read-access
+instructions
 
+Discuss that the pages containing the translated read-access instructions also need
+to be traced. This can trigger a cycle. Fortunately, this cycle converges after
+two iterations on a Linux guest. We expect this to be the common case as most kernel code
+is likely to be colocated.
 
+\section{Experimental Results}
+\label{sec:results}
+Present results without ``adaptive TLB resizing'' and ``avoiding read page faults''.
+
+Present results with ``adaptive TLB resizing'' and ``avoiding read page faults''.
+
+Present results with only ``avoiding read page faults''.
+
+Present results with only ``adaptive TLB resizing''. Discuss the syscall nanobenchmark
+which really benefits from adaptive TLB resizing.
 
 \begin{table}[!b]
 \centering
@@ -512,14 +527,6 @@ both optimizations below.
      \end{tabular}
 \label{tab:ExpWithout2}
 \end{table}
-
-
-Discuss the sources of overhead, and TLB thrashing.
-
-\section{Experimental Results}
-\label{sec:results2}
-Compare with base KVM, paravirtual, and baremetal. Discuss sources of overhead. Discuss
-why performance has improved.
 
 \section{Discussion}
 \subsection{Multiprocessors}
