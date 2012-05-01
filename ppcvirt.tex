@@ -353,10 +353,14 @@ can also be implemented for closed-source guests.
 
 The execute-only page reserved in guest address space has a special
 constraint. As we explain in the
-next section, this page must lie within 32MB of the
+next section, this page must lie within $\pm$16MB of the
 guest kernel's code section, for certain translations to be possible.
 Given that most guest kernel code sections are
 small (e.g., XXX MB for Linux), this constraint is usually easy to satisfy.
+
+Finally, we note that requiring a guest-side device driver for performance
+is a well-accepted virtualization practice. For example, x86-based hypervisors
+typically require installation of ``tools'' in the guest for better performance.
 
 \section{In-place Binary Translation}
 \label{sec:bintrans}
@@ -419,14 +423,70 @@ However, this fails if the guest jumps to the middle of our
 three-instruction translation. We discarded this approach because in the presence
 of indirect branches, the guest can potentially jump to any instruction boundary.
 
+The hypervisor maintains the state of the translation cache in
+a hash table indexed by the PC value of current patch-sites. Each hash table
+entry stores information like the original contents of the patch-site,
+the location of the corresponding emulation code in the shared page, and other
+information useful
+for cache replacement. We use the FIFO replacement policy for it's simplicity
+and high performance.
 \section{Maintaining Guest Fidelity through Read/Write Tracing}
 \label{sec:tracing}
-Discuss our tracing mechanism.
+Changing instructions in the guest address space can cause
+inconsistencies if the guest tries to read or write it's own code.
+For this reason, we protect the pages containing patch-sites with hardware
+page-protection bits. Embedded Power Architecture provides three {\tt rwx}
+protection bits per page. Using these bits, we mark a guest page containing a patch-site
+execute only, by setting {\tt r} and {\tt w} bits to 0 and {\tt x} bit to 1.
+Any execution of an instruction on this page proceeds uninterrupted
+but any read or write access causes a VM exit (page fault).
+On a page fault, the hypervisor
+emulates the faulting instruction in software. We call this
+method memory read/write tracing (similar to VMware's memory tracing
+on x86\cite{agesen:comparison}).
 
-\section{Experimental Results - I}
-\label{sec:results1}
-Discuss the experimental results obtained after implementing binary translation
-and tracing. 
+For tracing, we implemented software emulations of memory instructions in KVM.
+For read instructions, we simply return the original contents of the memory
+address in the appropriate destination
+operand. The original contents may be obtained either from the present guest
+page (if the address does not intersect with a patch-site) or from the hypervisor's
+hash table (if the address matches a patch-site) or both.
+For write instructions, if the memory address (and length) intersects with a patch-site,
+we invalidate and free the corresponding translation cache
+entry and replace the guest page with it's original contents before
+restarting the instruction. If the memory address does not intersect with a patch
+site, we simply return the corresponding contents of guest's memory in the destination
+operand.
+
+The overhead of read/write tracing depends on the number of accesses by the guest
+to it's pages containing kernel code. For a Linux guest, we found that this overhead
+can be quite significant. For example, booting guest Linux can result in
+up to XXX page faults due to read/write tracing causing XXX\% performance overhead.
+We present detailed experiments to measure this overhead in Section~\ref{sec:results}.
+
+We found that the large number of exits due to read/write tracing were primarily
+due to false sharing. Typically, guest kernel data resides on the same page as
+guest kernel code, which causes a large number of VM exits. The problem is
+worse on embedded Power Architecture due to the presence of {\em huge} pages.
+Power Architecture (embedded versions) typically have small software-managed
+TLBs with variable-sized pages. Operating systems typically use huge pages to
+minimize the number of TLB misses, which exacerbates false sharing problems for
+our optimizations.
+
+We implement two mechanisms to offset this tracing overhead. Our first mechanism
+adaptively resizes the guest's TLB entries. Our second mechanism optimizes page faults
+caused by read accesses (which is the common case) by making a copy of
+the read-only data, and translating the read instructions
+to access the copied data (instead of the original). The copied data is placed on
+a separate page from the patch-sites to avoid tracing page faults. We discuss
+both optimizations below.
+
+\subsection{Adaptive TLB splitting/merging}
+
+\subsection{Optimization of DSI reads} - explaination - tracing of root cause by studying results of nanobenchmark syscall - comparison of results with DM-read
+
+
+
 \begin{table}[!b]
 \centering
 \caption{Performance improvement for LABT}
@@ -456,16 +516,14 @@ and tracing.
 
 Discuss the sources of overhead, and TLB thrashing.
 
-\section{Further Optimizations}
-\label{sec:tracingopt}
-\subsection{Adaptive TLB splitting/merging}
-\subsection{Optimization of DSI reads} - explaination - tracing of root cause by studying results of nanobenchmark syscall - comparison of results with DM-read
-
-\section{Experimental Results - II}
+\section{Experimental Results}
 \label{sec:results2}
 Compare with base KVM, paravirtual, and baremetal. Discuss sources of overhead. Discuss
 why performance has improved.
 
+\section{Discussion}
+\subsection{Multiprocessors}
+\subsection{Comparison with Full Binary Translation}
 \section{Conclusion}
 
 \bibliography{millirollbacks}
