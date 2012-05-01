@@ -358,27 +358,28 @@ optimization solution based on in-place binary translation.
 	         Benchmark\verb, ,& Without-Opt \verb, ,& Avoid-RPF \verb, , & Adapt-TLB \verb, ,& Adapt-TLB-patch \\ \hline
 
      & \multicolumn{4}{c|}{ Running Time in $sec$}\\ \cline {2-5}  
-     Linux boot	&	13.10	&	12.23	&	13.29	&	13.18	\\
-Echo Spawn	&	8.25	&	7.21	&	7.93	&	7.87	\\
+     Linux boot	&	13.1	&	12.24	&	13.29	&	13.18	\\
+Echo Spawn	&	8.25	&	7.26	&	7.93	&	7.87	\\
 Find	&	0.92	&	0.71	&	1.15	&	1.28	\\ \cline{2-5}
 	   
      & \multicolumn{4}{c|}{Latency in $msec$}\\  \cline{2-5}
-syscall	&	0.008	&	0.003	&	0.010	&	0.010	\\
-stat	&	0.012	&	0.006	&	0.006	&	0.006	\\
+syscall	&	0.008	&	0.003	&	0.01	&	0.01	\\
+stat	&	0.012	&	0.007	&	0.006	&	0.006	\\
 fstat	&	0.009	&	0.004	&	0.004	&	0.004	\\
 open/close:	&	0.024	&	0.014	&	0.031	&	0.032	\\
 sig hndl	&	0.009	&	0.004	&	0.004	&	0.004	\\
-pipe 	&	0.054	&	0.033	&	0.135	&	0.107	\\
-fork	&	2.240	&	1.898	&	2.823	&	2.342	\\
-exec	&	8.384	&	7.369	&	8.849	&	9.619	\\
-sh	&	17.615	&	15.904	&	21.813	&	16.952	\\ \cline{2-5}
+pipe 	&	0.054	&	0.034	&	0.135	&	0.107	\\
+fork	&	2.24	&	2.061	&	2.823	&	2.342	\\
+exec	&	8.384	&	7.533	&	8.849	&	9.619	\\
+sh	&	17.615	&	16.327	&	21.813	&	16.952	\\ \cline{2-5}
      & \multicolumn{4}{c|}{Number of loops per $sec$}\\  \cline{2-5}
 
-spawn	&	690	&	778	&	750	&	756	\\	
-syscall	&	32338	&	80767	&	73984	&	74687	\\	
-context1	&	18378	&	30169	&	9983	&	10842	\\	
-hanoi	&	883299	&	884384	&	882355	&	882583	\\	
-pipe	&	53289	&	110446	&	101188	&	102150	\\	
+spawn	&	690	&	781	&	750	&	756	\\
+syscall	&	32338	&	76200	&	73984	&	74687	\\
+context1	&	18378	&	22579	&	9983	&	10842	\\
+hanoi	&	883299	&	884326	&	882355	&	882583	\\
+pipe	&	53289	&	106809	&	101188	&	102150	\\
+	
 
         \hline
       \end{tabular}
