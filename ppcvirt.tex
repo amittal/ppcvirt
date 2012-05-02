@@ -152,7 +152,7 @@ We perform our experiments on Linux/KVM version XXX running on an
 embedded processor based on Power Architecture technology from Freescale used in the networking
 domain (e.g. routers, switches etc.).
 Table~\ref{tab:kvm_performance} shows the timing characteristics of
-different benchmarks running on KVM on Power Architecture. The
+different benchmarks running on KVM on Power Architecture platforms. The
 overhead is due to VM-exits caused by execution of priviliged instructions
 at unprivileged level. Table~\ref{tab:priv_opcodes} lists the privileged
 opcodes and briefly explains their semantics.
@@ -400,10 +400,10 @@ with a branch back to the instruction following the patch-site
 terminating branch instruction, a new translation is generated for
 each patch-site.
 
-We use Power Architecture's unconditional direct {\tt branch} opcode to jump to the
+We use the unconditional direct {\tt branch} instruction (Power ISA) to jump to the
 translation cache from the patch-site. The {\tt branch} opcode specifies a 26-bit
 branch offset, with either absolute or relative addressing. This constrains us
-to place the emulation code either within a 24-bit distance of the patch-site (i.e.,
+to place the emulation code either within a 26-bit distance of the patch-site (i.e.,
 $\pm$32MB) or in the top or bottom 32MB of the guest's virtual address
 space (see Figure~\ref{fig:branchtargets}). We ensure this by mapping the shared
 page containing our translation cache within $\pm$32MB of the kernel's code
@@ -454,7 +454,7 @@ and high performance.
 Changing instructions in the guest address space can cause
 inconsistencies if the guest tries to read or write it's own code.
 For this reason, we protect the pages containing patch-sites with hardware
-page-protection bits. Embedded Power Architecture provides three {\tt rwx}
+page-protection bits. Embedded Power Architecture platforms provide three {\tt rwx}
 protection bits per page for both user/supervisor privilege levels. Using these
 bits, we mark a guest page containing a patch-site
 execute only in user mode, by setting {\tt r} and {\tt w} bits to 0 and {\tt x} bit to 1.
@@ -487,8 +487,8 @@ We present detailed experiments to measure this overhead in Section~\ref{sec:res
 We found that the large number of exits due to read/write tracing were primarily
 due to false sharing. Typically, guest kernel data resides on the same page as
 guest kernel code, which causes a large number of VM exits. The problem is
-worse on embedded Power Architecture due to the presence of {\em huge} pages.
-Embedded Power Architecture has small software-managed
+worse on embedded Power Architecture processors due to the presence of {\em huge} pages.
+Embedded Power Architecture processors have small software-managed
 TLB caches with variable-sized pages. Operating systems typically use huge pages for
 kernel pages to
 minimize the number of TLB entries, which exacerbates false sharing problems for
@@ -709,22 +709,21 @@ our optimizations to show equivalent performance improvements on a multiprocesso
 VMware's x86-based binary translator\cite{agesen:comparison} is perhaps the closest
 to our system.
 
-We rely on Power Architecture features to implement our
+We rely on Power Architecture technology features to implement our
 scheme correctly and efficiently. For example, we use
-{\tt read-write-execute} page protection bits available on Power Architecture platforms to ensure guest
+{\tt read-write-execute} page protection bits available on Power Architecture processors to ensure guest
 fidelity. In contrast, the x86 architecture provides only {\tt read-only} and
 {\tt no-execute} (NX) bits, which are less powerful, and insufficient
 to implement our scheme. As another
-example, we use Power
-Architecture's fixed-length aligned instruction encoding to be able to
+example, we use Power ISA's fixed-length aligned instruction encoding to be able to
 perform in-place binary translation correctly. Such ideas cannot be used
 on x86 where the guest could potentially jump to the middle of an instruction.
 We find that these subtle
 differences in different architectures greatly impact VMM design. Just like some
 of our aforementioned ideas are not applicable to
 x86, some of the ideas in VMware's x86-based binary translator
-are not applicable to Power Architecture. For example, VMware's binary translator
-relies on x86's segmentation hardware but embedded Power Architecture platforms do not
+are not applicable to Power Architecture processors. For example, VMware's binary translator
+relies on x86's segmentation hardware but embedded Power Architecture processors do not
 support segmentation.
 
 \subsection{Related Work}
@@ -733,7 +732,7 @@ Discuss Dynamo\\
 Discuss DynamoRio, Valgrind, etc.\\
 \section{Conclusion}
 We discuss the design and implementation of an efficient virtualization solution
-for embedded Power Architecture. We propose and validate three important optimizations
+for embedded Power Architecture processors. We propose and validate three important optimizations
 for efficient virtualization, namely {\em in-place binary translation and read/write
 tracing}, {\em adaptive TLB resizing}, and {\em avoiding read page faults}. 
 The Linux/KVM-based prototype system developed on these ideas shows significant
