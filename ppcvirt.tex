@@ -186,13 +186,15 @@ cause exits. Figure~\ref{fig:pc_profile} shows a histogram on the number
 of distinct PC values and the frequency of exits on them.
 Table~\ref{tab:linuxboot_pcexits} presents the exit profile of different
 PCs in more detail for the Linux boot benchmark. For example, around 92\% of all
-exits are caused by only 93 distinct PCs for guest Linux boot. This confirms that
+exits are caused by only 93 distinct PCs for guest Linux boot. These
+measurements confirm that
 binary translating
-only the most frequently executed opcodes is likely to produce large improvements.
+only the most frequently executed opcodes/PCs is likely to produce large
+improvements.
 
 \begin{table}[!b]
 \centering
-\caption{Sources of VM Exits}
+\caption{Sources of VM Exits: Opcodes and Exceptions}
      \begin{tabular}{|l | p{5cm} |} \hline
        Opcode \verb, , & Description \\ \hline
        {\tt mfmsr} & Move from machine state register \\ \hline
@@ -244,7 +246,7 @@ only the most frequently executed opcodes is likely to produce large improvement
 \centering
 
 \includegraphics[scale=0.5]{pc_count.eps}
-\caption{PC frequency}
+\caption{Exit Profile of Different Guest PCs}
 \label{fig:pc_profile}
 \end{figure}
 
@@ -308,7 +310,7 @@ only the most frequently executed opcodes is likely to produce large improvement
 
 \begin{table}[!b]
 \centering
-\caption{Tracing overhead optimizations - Appraoches}
+\caption{Tracing overhead optimizations - Approaches}
      \begin{tabular}{|l | p{5cm} |} \hline
        Approach \verb, , & Description \\ \hline
        BT-Trace & In-place Binary Translation and Read/Write Tracing \\ \hline
