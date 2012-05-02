@@ -18,7 +18,8 @@
   Power Architecture\textsuperscript{\textregistered} is popular and widespread on embedded systems, and such
   platforms are
   increasingly
-  being used to run virtual machines\cite{XXX}. While the Power Architecture meets the
+  being used to run virtual machines\cite{embedded_virtualization}. While the Power
+  Architecture meets the
   Popek-and-Goldberg virtualization requirements for traditional trap-and-emulate
   style virtualization, the performance overhead of virtualization remains high.
   For example, workloads exhibiting a large amount of kernel activity typically
@@ -46,10 +47,11 @@
 \section{Introduction}
 Embedded devices based on Power Architecture are dominant for their
 favourable power/performance characteristics. Virtualization on these platforms is
-compelling for several applications\cite{XXX}. While newer Power Architecture platforms
-have explicit support for efficient virtualization\cite{XXX}, a majority of
+compelling for several applications\cite{embedded_virtualization}. While newer Power
+Architecture platforms
+have explicit support for efficient virtualization\cite{freescale_embedded_hyperv, hwassists_hyperv}, a majority of
 prevalent embedded devices run on older (and cheaper) Power Architecture platforms that use
-traditional trap-and-emulate style virtualization\cite{XXX}. Hence, efficient
+traditional trap-and-emulate style virtualization\cite{popekgoldberg}. Hence, efficient
 virtualization is highly desirable on these platforms.
 
 The current virtualization approach on Power Architecture platforms uses traditional
@@ -59,10 +61,11 @@ operation to exit into the hypervisor. For guest workloads executing a large num
 of privileged instructions, these VM exits are a major performance
 bottleneck. Table~\ref{tab:kvm_performance} lists the performance of vanilla Linux/KVM
 on a few common workloads, comparing them with bare-metal performance.
+For example, a guest Linux boot takes almost 5x longer when run virtualized.
 
 The poor performance of simple trap-and-emulate style virtualization has led to
 the inclusion of paravirtual extensions in the Linux kernel on both
-guest and host sides\cite{pvpower}. The paravirtual extension in the guest
+guest and host sides for Power Architecture\cite{pvpower}. The paravirtual extension in the guest
 rewrites the guest (binary) kernel
 code at startup time to replace most privileged instructions with
 hypervisor-aware unprivileged counterparts ({\em hypercalls}).
@@ -82,7 +85,7 @@ optimizations are
 not possible for privileged code running as loadable kernel modules. The
 current paravirtual
 approach on Linux also fails in the presence of self-referential, self-modifying
-and dynamically generated code. The current Linux paravirtual extensions carefully
+and dynamically generated code. The Linux paravirtual extensions carefully
 avoid such pitfalls by ensuring that the kernel never uses self-referential
 or self-modifying code after it has been rewritten. However, such constraints are
 ungraceful, and hard to maintain over time.
@@ -107,9 +110,9 @@ that instruction {\em in-place} to directly execute the corresponding
 VMM logic (thus avoiding an exit). In doing so, we directly modify the guest's
 address space. This is in contrast to a {\em full} binary translation approach
 that translates the entire guest code
-(e.g., VMware's x86-based binary translator\cite{agesen:comparison}). Our approach is
+(e.g., VMware's x86-based binary translator\cite{adams:asplos06}). Our approach is
 simpler and incurs less overhead than full binary
-translation approaches. We compare the two approaches in detail in
+translation approaches. We compare the two approaches in more detail in
 Section~\ref{sec:comparison_with_full_bt}.
 
 Modifying the guest's address space has obvious pitfalls.
@@ -131,8 +134,8 @@ Such instructions are instead replaced with a branch to a code
 fragment in a host-managed translation cache. This branch is implemented as a
 single instruction in the guest's address space, and the translation
 cache is allocated in host's address space. We provide a mechanism for the guest
-to directly access the translation cache in host's address space. The
-details of this mechanism are discussed in Section~\ref{sec:binarytranslation}.
+to directly access the translation cache in host's address
+space (details in Section~\ref{sec:bintrans}).
 
 The second pitfall with in-place guest modification is due to
 self-referential and self-modifying code inside the guest. We maintain correctness by 
@@ -183,24 +186,29 @@ cause exits. Figure~\ref{fig:pc_profile} shows a histogram on the number
 of distinct PC values and the frequency of exits on them.
 Table~\ref{tab:linuxboot_pcexits} presents the exit profile of different
 PCs in more detail for the Linux boot benchmark. For example, around 92\% of all
-exits are caused by only 93 distinct PCs for guest Linux boot. This confirms that
+exits are caused by only 93 distinct PCs for guest Linux boot. These
+measurements confirm that
 binary translating
-only the most frequently executed opcodes is likely to produce large improvements.
+only the most frequently executed opcodes/PCs is likely to produce large
+improvements.
 
 \begin{table}[!b]
 \centering
-\caption{Sources of VM Exits}
+\caption{Sources of VM Exits: Opcodes and Exceptions}
      \begin{tabular}{|l | p{5cm} |} \hline
        Opcode \verb, , & Description \\ \hline
-       MFMSR & Move from machine state register \\ \hline
-       MTMSR & Move to machine state register \\\hline
-	   MFSPR & Move from special purpose register \\\hline
-	   MTSPR & Move to special purpose register \\\hline
-	   WRTEE(I) & Write MSR External Enable  \\\hline
-	   RFI & Return from interrupt \\\hline
-	   $[$DI$]$TLBREAL & guest tlb does not have a mapping for the address\\\hline
-	   $[$DI$]$TLBVIRT & tlb fault due to virtualization. Host tlb does not have a mapping which is present in guest tlb \\    \hline
-   	   DSI & Exits due to access privilege \\\hline
+       {\tt mfmsr} & Move from machine state register \\ \hline
+       {\tt mtmsr} & Move to machine state register \\\hline
+       {\tt mfspr} & Move from special purpose register \\\hline
+       {\tt mtspr} & Move to special purpose register \\\hline
+       {\tt wrtee(i)} & Write MSR External Enable  \\\hline
+       {\tt rfi} & Return from Interrupt \\\hline
+       {\tt tlbwe} & Writes a TLB entry in hardware\\\hline
+       \hline
+       Exception \verb, , & Description \\ \hline
+       {\tt dtlbmiss} & Page fault on data due to TLB not present\\    \hline
+       {\tt itlbmiss} & Page fault on instruction due to TLB not present\\    \hline
+       {\tt dsi} & Page fault due to insufficient privilege\\\hline
 
      \end{tabular}
 \label{tab:priv_opcodes}
@@ -211,16 +219,53 @@ only the most frequently executed opcodes is likely to produce large improvement
 
 \includegraphics[scale=0.5]{exit_count.eps}
 \caption{Sources of VM exits}
-\label{fig:opcode_time_fraction}
+\label{fig:opcode_exit_fraction}
 \end{figure}
+
+\begin{table}[!b]
+\centering
+\caption{Sources of VM exits for Linux boot}
+     \begin{tabular}{lcc} \hline
+       Instruction class  & Exit count & \% of total exits  \\ \hline
+       {\tt mfspr} & 4484245 & 33.8  \\
+       {\tt wrtee} & 2792109 & 21.1  \\
+       {\tt mtspr} & 2307647 & 17.4  \\
+       {\tt rfi} & 575302 & 9.5 \\
+       {\tt mtmsr} & 413847 & 4.3 \\
+       {\tt tlbwe} & 391813 & 3.1 \\
+       %DTLBREAL & 247282 & 2.9 \\
+       %ITLBREAL & 241070 & 1.8 \\
+       {\tt dtlbmiss} & 198239 & 1.5 \\
+       {\tt itlbmiss} & 192046 & 1.4 \\
+       \hline
+     \end{tabular}
+\label{tab:linuxboot_exitcount}
+\end{table}
 
 \begin{figure}[!htb]
 \centering
 
 \includegraphics[scale=0.5]{pc_count.eps}
-\caption{PC frequency}
+\caption{Exit Profile of Different Guest PCs}
 \label{fig:pc_profile}
 \end{figure}
+
+\begin{table}[!b]
+\centering
+\caption{PCs responsible for VM exits for linux boot}
+     \begin{tabular}{lcc} \hline
+       Exits count  & PC count & \% of total exits  \\ \hline
+       $>$20000 & 93 & 91.9  \\
+       $>$10000 & 23 & 3.1  \\
+       $>$5000 & 68 & 4.2  \\
+       $>$2000 & 12 & 0.3 \\
+       $>$1000 & 17 & 0.2 \\
+       $<$1000 & 299 & 0.2 \\
+       \hline
+     \end{tabular}
+\label{tab:linuxboot_pcexits}
+\end{table}
+
 
 \begin{table*}
 \centering
@@ -250,63 +295,22 @@ only the most frequently executed opcodes is likely to produce large improvement
       \end{tabular}
 \label{tab:kvm_performance}
 \end{table*} 
-
-
-
-\begin{table}[!b]
-\centering
-\caption{Performance of Base KVM}
-     \begin{tabular}{lcc} \hline
-       Benchmark  & Performance (\% of bare-metal) \\ \hline
-       Linux Boot & 21.7 \\
-       Echo Spawn & 6.4 \\
-       Find & 20.6 \\
-       \hline
-     \end{tabular}
-\label{tab:kvmperformance}
-\end{table}
-
+%\begin{table}[!b]
+%\centering
+%\caption{Performance of Base KVM}
+%     \begin{tabular}{lcc} \hline
+%       Benchmark  & Performance (\% of bare-metal) \\ \hline
+%       Linux Boot & 21.7 \\
+%       Echo Spawn & 6.4 \\
+%       Find & 20.6 \\
+%       \hline
+%     \end{tabular}
+%\label{tab:kvmperformance}
+%\end{table}
 
 \begin{table}[!b]
 \centering
-\caption{Sources of VM exits for linux boot}
-     \begin{tabular}{lcc} \hline
-       Instruction class  & Exit count & \% of total exits  \\ \hline
-       MFSPR & 4484245 & 33.8  \\
-       WRTEE & 2792109 & 21.1  \\
-       MTSPR & 2307647 & 17.4  \\
-       RFI & 575302 & 9.5 \\
-       MTMSR & 413847 & 4.3 \\
-       TLBWE & 391813 & 3.1 \\
-       DTLBREAL & 247282 & 2.9 \\
-       ITLBREAL & 241070 & 1.8 \\
-       DTLBVIRT & 198239 & 1.5 \\
-       ITLBVIRT & 192046 & 1.4 \\
-       \hline
-     \end{tabular}
-\label{tab:NumExitsBase}
-\end{table}
-
-\begin{table}[!b]
-\centering
-\caption{PCs responsible for VM exits for linux boot}
-     \begin{tabular}{lcc} \hline
-       Exits count  & PC count & \% of total exits  \\ \hline
-       $>$20000 & 93 & 91.9  \\
-       $>$10000 & 23 & 3.1  \\
-       $>$5000 & 68 & 4.2  \\
-       $>$2000 & 12 & 0.3 \\
-       $>$1000 & 17 & 0.2 \\
-       $<$1000 & 299 & 0.2 \\
-       \hline
-     \end{tabular}
-\label{tab:NumPCBase}
-\end{table}
-
-
-\begin{table}[!b]
-\centering
-\caption{Tracing overhead optimizations - Appraoches}
+\caption{Tracing overhead optimizations - Approaches}
      \begin{tabular}{|l | p{5cm} |} \hline
        Approach \verb, , & Description \\ \hline
        BT-Trace & In-place Binary Translation and Read/Write Tracing \\ \hline
@@ -526,7 +530,7 @@ but any read or write access causes a page fault (and a VM exit).
 On a page fault, the hypervisor
 emulates the faulting instruction in software. We call this
 method memory read/write tracing (similar to VMware's memory tracing
-on x86\cite{agesen:comparison}).
+on x86\cite{adams:asplos06}).
 
 We implement software emulations of memory instructions in KVM. There are XXX
 different memory opcodes on Power Architecture that need to be emulated.
@@ -575,7 +579,7 @@ The hypervisor traps guest's accesses to the TLB, and creates appropriate
 {\em shadow TLB entries}. These shadow entries are loaded into hardware
 while the guest is
 running. This mechanism is similar to the hardware-managed shadow page
-tables used in x86\cite{agesen:comparison}. The guest cannot directly access the shadow
+tables used in x86\cite{adams:asplos06}. The guest cannot directly access the shadow
 TLB entries, as guest's accesses to the TLB entries are trapped and emulated by
 the hypervisor. This allows the hypervisor full flexibility in choosing the
 size and privileges of it's shadow TLB entries. For example, the hypervisor
@@ -685,7 +689,7 @@ page as the original patched privileged instructions, causing this
 cycle to converge on the first iteration (because these pages are already traced).
 Even if the patching of the faulting instructions requires a new read/write trace to be
 created, we expect this
-cycle to converge in a small number (say 2-3) iterations. Intuitively, kernel
+cycle to converge in 1-2 iterations. Intuitively, kernel
 code which causes privileged
 VM-exits or tracing page faults is likely to be spatially close, and will eventually
 lead to a small set of traced pages. We observed this behaviour in all our experiments
@@ -753,11 +757,12 @@ Our algorithm also settles on the same optimal configuration; the overhead is
 primarily due to the few extra page faults in the beginning to reach this configuration.
 
 \section{Discussion}
+\label{sec:discussion}
 \subsection{Comparison with Full Binary Translation}
-\label{sec:comparison_with_vmware}
+\label{sec:comparison_with_full_bt}
 We call a binary translator which translates all guest instructions a {\em full}
 binary translator.
-VMware's x86-based binary translator\cite{agesen:comparison} is an example of
+VMware's x86-based binary translator\cite{adams:asplos06} is an example of
 such a system. A full binary translator translates all guest code, and not
 just the privileged instructions (as done in our system). The advantage of
 our approach is it's simplicity and often higher performance.
@@ -774,7 +779,8 @@ Our in-place binary translation approach relies on the fixed-length word-aligned
 nature of Power Architecture instructions. We ensure that a guest cannot possibly
 jump to the middle of our translation by relying on this property. Because the
 x86 architecture has variable-sized non-aligned instructions, in-place binary
-translation is much harder (or perhaps impossible) to implement correctly.
+translation is much harder (or perhaps impossible) to implement correctly
+on x86.
 
 We also rely on the ability to read/write trace guest pages by marking them
 {\tt execute-only}. This is possible on embedded Power Architecture due to the
@@ -793,14 +799,14 @@ can achieve the same (or better) effect with less engineering effort.
 
 \subsection{Other Related Work}
 Binary translation has been previously used in various contexts, namely
-cross-ISA portability\cite{bansal:osdi08, qemu}, hardware-based
-performance acceleration\cite{transmeta_crusoe}, runtime compiler
-optimizations\cite{dynamo}, security and correctness\cite{dynamorio},
+cross-ISA portability\cite{bansal:osdi08, qemu:software}, hardware-based
+performance acceleration\cite{transmeta_crusoe:chip}, runtime compiler
+optimizations\cite{bala00dynamo}, program shepherding\cite{bruening04thesis},
 testing and debugging\cite{valgrind}. Binary translation was
 first used for efficient virtualization on the x86 architecture by
-VMware\cite{agesen:comparison}, and our work
+VMware\cite{adams:asplos06}, and our work
 is perhaps closest to their approach. The difference is in the translator's design,
-as previously discussed in Section~\ref{sec:comparison_with_vmware}.
+as previously discussed in Section~\ref{sec:comparison_with_full_bt}.
 
 The recent extension to the Linux kernel for Power Architecture paravirtualization
 contrasts with our approach. While the paravirtual modifications require extensive
@@ -818,6 +824,7 @@ This minimizes synchronization overheads at the potential cost of marginally hig
 space overheads. We expect
 our optimizations to show equivalent performance improvements on a multiprocessor.
 \section{Conclusion}
+\label{sec:conclusion}
 We discuss the design and implementation of an efficient host-side virtualization
 solution
 for embedded Power Architecture processors. We propose and validate three important
@@ -827,7 +834,7 @@ tracing}, {\em adaptive page resizing}, and {\em adaptive data mirroring}.
 The Linux/KVM-based prototype system developed on these ideas shows significant
 performance improvements on common workloads, and compares favourably to
 previously-proposed paravirtual approaches.
-\bibliography{millirollbacks}
+\bibliography{ppcvirt}
 \bibliographystyle{abbrv}
 
 \end{document}
