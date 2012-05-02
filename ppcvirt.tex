@@ -269,7 +269,10 @@ improvements.
 
 \begin{table*}
 \centering
-\caption{Performance comparison}
+\caption{Performance comparison. The second column (KVM) represents
+unmodified KVM. The third column (KVM-PV) represents KVM with paravirtual
+extensions. The last column (KVM-BT) represents KVM with adaptive
+binary translation with all read/write tracing optimizations (our approach)}
       \begin{tabular}{|l| l|p{5cm} | r r r r|} \hline
 	        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& KVM \verb, , & KVM-PV \verb, ,& KVM-BT \\ \hline
 
