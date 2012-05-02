@@ -810,10 +810,10 @@ cross-ISA portability\cite{bansal:osdi08, qemu}, hardware-based
 performance acceleration\cite{transmeta_crusoe}, runtime compiler
 optimizations\cite{dynamo}, security and correctness\cite{dynamorio},
 testing and debugging\cite{valgrind}. Binary translation was
-first used for efficient virtualization of the x86 architecture by
+first used for efficient virtualization on the x86 architecture by
 VMware\cite{agesen:comparison}, and our work
-is perhaps closest to their approach. The difference is in the design of the
-binary translator, as discussed previously (Section~\ref{sec:comparison_with_vmware}).
+is perhaps closest to their approach. The difference is in the translator's design,
+as previously discussed in Section~\ref{sec:comparison_with_vmware}.
 
 The recent extension to the Linux kernel for Power Architecture paravirtualization
 contrasts with our approach. While the paravirtual modifications require extensive
@@ -826,7 +826,7 @@ We present our experiments and results on a uniprocessor system but our
 ideas are equally relevant to a multiprocessor system. For a multiprocessor
 guest/host, these optimizations must be implemented for each virtual CPU (VCPU).
 To reduce synchronization
-overheads, separate translation and data caches must be maintained for each VCPU.
+overheads, separate translation and data caches need to be maintained for each VCPU.
 This minimizes synchronization overheads at the potential cost of marginally higher
 space overheads. We expect
 our optimizations to show equivalent performance improvements on a multiprocessor.
