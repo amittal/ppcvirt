@@ -18,7 +18,8 @@
   Power Architecture\textsuperscript{\textregistered} is popular and widespread on embedded systems, and such
   platforms are
   increasingly
-  being used to run virtual machines\cite{XXX}. While the Power Architecture meets the
+  being used to run virtual machines\cite{embedded_virtualization}. While the Power
+  Architecture meets the
   Popek-and-Goldberg virtualization requirements for traditional trap-and-emulate
   style virtualization, the performance overhead of virtualization remains high.
   For example, workloads exhibiting a large amount of kernel activity typically
@@ -46,10 +47,11 @@
 \section{Introduction}
 Embedded devices based on Power Architecture are dominant for their
 favourable power/performance characteristics. Virtualization on these platforms is
-compelling for several applications\cite{XXX}. While newer Power Architecture platforms
-have explicit support for efficient virtualization\cite{XXX}, a majority of
+compelling for several applications\cite{embedded_virtualization}. While newer Power
+Architecture platforms
+have explicit support for efficient virtualization\cite{freescale_embedded_hyperv, hwassists_hyperv}, a majority of
 prevalent embedded devices run on older (and cheaper) Power Architecture platforms that use
-traditional trap-and-emulate style virtualization\cite{XXX}. Hence, efficient
+traditional trap-and-emulate style virtualization\cite{popekgoldberg}. Hence, efficient
 virtualization is highly desirable on these platforms.
 
 The current virtualization approach on Power Architecture platforms uses traditional
@@ -107,7 +109,7 @@ that instruction {\em in-place} to directly execute the corresponding
 VMM logic (thus avoiding an exit). In doing so, we directly modify the guest's
 address space. This is in contrast to a {\em full} binary translation approach
 that translates the entire guest code
-(e.g., VMware's x86-based binary translator\cite{agesen:comparison}). Our approach is
+(e.g., VMware's x86-based binary translator\cite{adams:asplos06}). Our approach is
 simpler and incurs less overhead than full binary
 translation approaches. We compare the two approaches in detail in
 Section~\ref{sec:comparison_with_full_bt}.
@@ -806,9 +808,9 @@ can achieve the same (or better) effect with less engineering effort.
 
 \subsection{Other Related Work}
 Binary translation has been previously used in various contexts, namely
-cross-ISA portability\cite{bansal:osdi08, qemu}, hardware-based
-performance acceleration\cite{transmeta_crusoe}, runtime compiler
-optimizations\cite{dynamo}, security and correctness\cite{dynamorio},
+cross-ISA portability\cite{bansal:osdi08, qemu:software}, hardware-based
+performance acceleration\cite{transmeta_crusoe:chip}, runtime compiler
+optimizations\cite{bala00dynamo}, program shepherding\cite{bruening04thesis},
 testing and debugging\cite{valgrind}. Binary translation was
 first used for efficient virtualization on the x86 architecture by
 VMware\cite{agesen:comparison}, and our work
@@ -840,7 +842,7 @@ tracing}, {\em adaptive page resizing}, and {\em adaptive data mirroring}.
 The Linux/KVM-based prototype system developed on these ideas shows significant
 performance improvements on common workloads, and compares favourably to
 previously-proposed paravirtual approaches.
-\bibliography{millirollbacks}
+\bibliography{ppcvirt}
 \bibliographystyle{abbrv}
 
 \end{document}
