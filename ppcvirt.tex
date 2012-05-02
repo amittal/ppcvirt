@@ -105,7 +105,7 @@ Our host-side virtualization optimizations are based on adaptive binary
 translation. On observing a large number of VM exits by a guest instruction, we translate
 that instruction {\em in-place} to directly execute the corresponding
 VMM logic (thus avoiding an exit). In doing so, we directly modify the guest's
-address space. This is in contrast to a full binary translation approach
+address space. This is in contrast to a {\em full} binary translation approach
 that translates the entire guest code
 (e.g., VMware's x86-based binary translator\cite{agesen:comparison}). Our approach is
 simpler and incurs less overhead than full binary
@@ -131,7 +131,7 @@ Such instructions are instead replaced with a branch to a code
 fragment in a host-managed translation cache. This branch is implemented as a
 single instruction in the guest's address space, and the translation
 cache is allocated in host's address space. We provide a mechanism for the guest
-to directly access the translation cache in host's address space. The full
+to directly access the translation cache in host's address space. The
 details of this mechanism are discussed in Section~\ref{sec:binarytranslation}.
 
 The second pitfall with in-place guest modification is due to
@@ -689,39 +689,40 @@ read from the original location.
 In summary, we have implemented the following optimizations in Linux/KVM:
 \begin{enumerate}
   \item In-place Binary Translation and Read/Write Tracing
-  \item Adaptive TLB Resizing
-  \item Avoiding Read Page Faults by copying data and translating faulting instructions
+  \item Adaptive Page Resizing
+  \item Adaptive Data Mirroring and Translation of Faulting Instructions
 \end{enumerate}
 We perform experiments to measure the performance improvements through these
-optimizations. Optimization \#1 results in reduced number of VM exits due
+optimizations. Optimization 1 results in reduced number of VM exits due
 to privileged instructions. For a guest/hypervisor using small pages, this results
-in performance improvements. Most guests however use large pages to prevent
-TLB thrashing. Tracing large pages causes a page fault on each kernel data access.
+in performance improvements. Most guests however use large pages to reduce
+TLB pressure. Tracing large pages causes a page fault on each kernel data access.
 This leads to unacceptably low performance. For example, a Linux guest boot livelocks
 on such a system.
 
 Optimization 2 adaptively resizes the shadow TLB entries to reduce
 the number of tracing-induced page faults and results in
 performance improvements over unmodified KVM. The XXX column
-in Table~\ref{tab:detailed_results} shows the performance of KVM with Optimizations
-1 and 2.
+in Table~\ref{tab:detailed_results} shows the performance of KVM with
+Optimizations 1~and~2.
 Different workloads show different improvements. The improvement primarily depends
-on the reduction in the number of VM-exits due to privileged instructions and
-increase in page faults due to read/write tracing.
-Table~\ref{tab:vm_exit_stats} shows the number of
-privilged-instruction VM-exits and tracing-induced page faults for each workload
-before and after our optimizations. XXX Discuss the changes in the number
+on a three-way tradeoff between the number of VM-exits, the number of
+tracing page faults, and the number of page faults due to increased TLB pressure.
+In our experience, this delicate three-way tradeoff requires careful
+performance tuning.
+Table~\ref{tab:vm_exit_stats} shows the number of VM-exits and page faults due
+to all these three reasons for each workload, before and after our optimizations.
+XXX Discuss the changes in the number
 of VM exits and page faults for different workloads.
-For many workloads, the increase in tracing-induced page faults leads
-to significant (around 10\% for Linux guest boot) performance overhead.
+%For many workloads, the increase in tracing-induced page faults leads
+%to significant (around 10\% for Linux guest boot) performance overhead.
 
-Optimization 3 further reduces the number of tracing-induced page faults by
+Optimization 3 further reduces the number of tracing page faults by
 making copies of frequently read data residing in traced pages. The XXX column in
-Table~\ref{tab:vm_exit_stats} shows the number of tracing-induced page faults
-after implementing Optimization 3. The corresponding performance improvements
-are shown in Table~\ref{tab:detailed_results}. XXX Discuss the changes in the number
-of page faults for different workloads.
-
+Table~\ref{tab:vm_exit_stats} confirms this reduction on almost all workloads.
+XXX Discuss some workloads. Overall,
+Optimization 3 results in a XXX\% average performance
+improvements on our macrobenchmarks.
 
 \begin{table}[!b]
 \centering
@@ -749,17 +750,79 @@ of page faults for different workloads.
 \label{tab:ExpWithout2}
 \end{table}
 
-We next measure the overhead of our adaptive TLB resizing algorithm. We recorded
-the configuration of shadow TLB entries decided by our adaptive algorithm, and
-then repeated the experiment by forcing the same configuration statically. The
-difference between the two is a measure of the overhead of our adaptive TLB
-resizing algorithm. Table~\ref{tab:adaptive_tlb_resizing} presents our results.
-Typical overheads are 1-2\%, and are primarily due to the few extra page faults
-taken to settle on a stable TLB configuration.
+We next measure the overhead of our adaptive page resizing algorithm. To
+measure overhead, we statically configured the shadow TLB to the best
+possible configuration (number of kernel TLB entries, size of each TLB
+entry, etc.). We found experimentally that for a Linux guest with 5MB code
+section, the best configuration is to have a 5 distinct pages, one of size
+4MB ({\tt 0xc0000000-0xc03fffff}), and
+four of size 1MB each (covering {\tt 0xc0400000-0xc07fffff}). We compared the
+performance of
+our statically configured TLB configuration with that of our adaptive resizing
+algorithm.
+Table~\ref{tab:adaptive_tlb_resizing} summarizes our results for the macrobenchmarks.
+We observe that our resizing algorithm performs within 1-2\% of the optimal.
+Our algorithm also settles on the same optimal configuration; the overhead is
+primarily due to the few extra page faults in the beginning to reach this configuration.
 
 \section{Discussion}
-\subsection{Multiprocessors}
-We present our experiments and results on a uniprocessor system but the
+\subsection{Comparison with Full Binary Translation}
+\label{sec:comparison_with_vmware}
+We call a binary translator which translates all guest instructions a {\em full}
+binary translator.
+VMware's x86-based binary translator\cite{agesen:comparison} is an example of
+such a system. A full binary translator translates all guest code, and not
+just the privileged instructions (as done in our system). The advantage of
+our approach is it's simplicity and often higher performance.
+For example, it is well known that translation of an indirect branch (e.g., function
+return)
+on a full binary translator incurs significant overhead due to a potential
+table lookup on each execution. Our approach avoids this overhead.
+The disadvantage of our approach is that we change the guest's address space
+directly and have to thus monitor guest's accesses to our modified regions
+(which we do using read/write tracing). As we demonstrate in this work, it is
+possible to do this correctly and efficiently using our proposed optimizations.
+
+Our in-place binary translation approach relies on the fixed-length word-aligned
+nature of Power Architecture instructions. We ensure that a guest cannot possibly
+jump to the middle of our translation by relying on this property. Because the
+x86 architecture has variable-sized non-aligned instructions, in-place binary
+translation is much harder (or perhaps impossible) to implement correctly.
+
+We also rely on the ability to read/write trace guest pages by marking them
+{\tt execute-only}. This is possible on embedded Power Architecture due to the
+availability of separate
+{\tt read-write-execute} page protection bits.
+In contrast, the x86 architecture provides only {\tt read-only} and
+{\tt no-execute} (NX) bits, which are less powerful, and insufficient
+to implement {\tt execute-only} privileges at page granularity.
+
+Subtle
+differences in architectures greatly impact VMM design. We believe that our
+approach is perhaps a misfit for the x86 architecture for reasons outlined above.
+Similarly, a full binary translator is perhaps an overkill for the embedded
+Power Architecture, given that our lightweight adaptive in-place binary translator
+can achieve the same (or better) effect with less engineering effort.
+
+\subsection{Other Related Work}
+Binary translation has been previously used in various contexts, namely
+cross-ISA portability\cite{bansal:osdi08, qemu}, hardware-based
+performance acceleration\cite{transmeta_crusoe}, runtime compiler
+optimizations\cite{dynamo}, security and correctness\cite{dynamorio},
+testing and debugging\cite{valgrind}. Binary translation was
+first used for efficient virtualization of the x86 architecture by
+VMware\cite{agesen:comparison}, and our work
+is perhaps closest to their approach. The difference is in the design of the
+binary translator, as discussed previously (Section~\ref{sec:comparison_with_vmware}).
+
+The recent extension to the Linux kernel for Power Architecture paravirtualization
+contrasts with our approach. While the paravirtual modifications require extensive
+changes to the Linux kernel, our approach can achieve comparable performance
+with only host-side optimizations. Compared with the XXXX LOC included in the
+paravirtual Linux extensions, our approach requires only XXX LOC to be added to
+a Linux guest.
+
+We present our experiments and results on a uniprocessor system but our
 ideas are equally relevant to a multiprocessor system. For a multiprocessor
 guest/host, these optimizations must be implemented for each virtual CPU (VCPU).
 To reduce synchronization
@@ -767,43 +830,16 @@ overheads, separate translation and data caches must be maintained for each VCPU
 This minimizes synchronization overheads at the potential cost of marginally higher
 space overheads. We expect
 our optimizations to show equivalent performance improvements on a multiprocessor.
-\subsection{Comparison with x86-based Binary Translation}
-VMware's x86-based binary translator\cite{agesen:comparison} is perhaps the closest
-to our system.
-
- For example, a full binary
-translator requires a table lookup on every indirect branch (e.g., function return) which
-can result in high overheads on many common workloads. In contrast, our lightweight
-binary translator simply translates the privileged instructions and allows all other
-instructions to run natively.
-We rely on Power Architecture features to implement our
-scheme correctly and efficiently. For example, we use
-{\tt read-write-execute} page protection bits available on Power Architecture processors to ensure guest
-fidelity. In contrast, the x86 architecture provides only {\tt read-only} and
-{\tt no-execute} (NX) bits, which are less powerful, and insufficient
-to implement our scheme. As another
-example, we use Power ISA's fixed-length aligned instruction encoding to be able to
-perform in-place binary translation correctly. Such ideas cannot be used
-on x86 where the guest could potentially jump to the middle of an instruction.
-We find that these subtle
-differences in different architectures greatly impact VMM design. Just like some
-of our aforementioned ideas are not applicable to
-x86, some of the ideas in VMware's x86-based binary translator
-are not applicable to Power Architecture processors. For example, VMware's binary translator
-relies on x86's segmentation hardware but embedded Power Architecture processors do not
-support segmentation.
-
-\subsection{Related Work}
-Discuss Paravirtualization\\
-Discuss Dynamo\\
-Discuss DynamoRio, Valgrind, etc.\\
 \section{Conclusion}
-We discuss the design and implementation of an efficient virtualization solution
-for embedded Power Architecture processors. We propose and validate three important optimizations
+We discuss the design and implementation of an efficient host-side virtualization
+solution
+for embedded Power Architecture processors. We propose and validate three important
+optimizations
 for efficient virtualization, namely {\em in-place binary translation and read/write
-tracing}, {\em adaptive TLB resizing}, and {\em avoiding read page faults}. 
+tracing}, {\em adaptive page resizing}, and {\em adaptive data mirroring}. 
 The Linux/KVM-based prototype system developed on these ideas shows significant
-performance improvements over common workloads.
+performance improvements on common workloads, and compares favourably to
+previously-proposed paravirtual approaches.
 \bibliography{millirollbacks}
 \bibliographystyle{abbrv}
 
