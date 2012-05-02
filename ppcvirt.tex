@@ -226,23 +226,24 @@ only the most frequently executed opcodes is likely to produce large improvement
 \centering
 \caption{Performance comparison}
       \begin{tabular}{|l| l|p{5cm} | r r r r|} \hline
-	        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& Base KVM \verb, , & LABT KVM \verb, ,& PV KVM \\ \hline
+	        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& KVM \verb, , & KVM-PV \verb, ,& KVM-BT \\ \hline
 
      &&& \multicolumn{4}{c|}{ Running Time in $sec$}\\\cline {4-7}  
-      1&  Linux Boot& linux boot & 6.50	& 30.03	& 12.24	& 11.79 \\ \hline
-      2& Echo Spawn	& Spawning a large number of echo processes&1.40	& 21.34 &	7.26 &	6.50 \\\hline
-      3& Find	& find / -name temp & 0.39	& 1.89	& 0.71	& 0.67 \\ \hline
+      1&  Linux Boot& linux boot & 6.5	&	30.03	&	11.79	&	12.24 \\ \hline
+      2& Echo Spawn	& Spawning a large number of echo processes&1.4	&	21.34	&	6.5	&	7.26\\\hline
+      3& Find	& find / -name temp & 0.39	&	1.89	&	0.67	&	0.71 \\ \hline
 	   \multicolumn{3}{|c}{ lmbench microbenchmarks }& \multicolumn{4}{c|}{Latency in $msec$}\\  \hline
 
-  4& syscall	& measures time to write one word to /dev/null&	0.001	&	0.021	&	0.004	&	0.004	\\\hline
-5&stat	& measures the time to invoke the stat system call&	0.003	&	0.033	&	0.007	&	0.006	\\\hline
-6&fstat	&time to invoke fstat system call on open file &	0.001	&	0.021	&	0.005	&	0.004	\\\hline
-7&open/close:	& time to open a temporary file for reading and closing it immediately &	0.007	&	0.067	&	0.015	&	0.013	\\\hline
-8&sig hndl	& time to install a signal handler&	0.001	&	0.024	&	0.004	&	0.004	\\\hline
-9&pipe 	& round trip latency to pass a word from process A to process B and back to A&	0.015	&	0.165	&	0.035	&	0.033	\\\hline
-10&fork	& fork and exit &	1.084	&	6.641	&	2.061	&	1.640	\\\hline
-11&exec	& fork, exec and exit&	3.065	&	20.543	&	7.533	&	6.254	\\\hline
-12&sh	& fork, exec sh -c and exit&	6.645	&	45.164	&	16.327	&	13.842	\\\hline
+4	&	syscall	&	 measures time to write one word to /dev/null	&	0.000	&	0.020	&	0.003	&	0.003	\\	\hline
+5	&	stat	&	 measures the time to invoke the stat system call	&	0.003	&	0.033	&	0.006	&	0.007	\\	\hline
+6	&	fstat	&	time to invoke fstat system call on open file 	&	0.001	&	0.021	&	0.004	&	0.004	\\	\hline
+7	&	open/close:	&	 time to open a temporary file for reading and closing it immediately 	&	0.006	&	0.067	&	0.013	&	0.014	\\	\hline
+8	&	sig hndl	&	 time to install a signal handler	&	0.001	&	0.024	&	0.004	&	0.004	\\	\hline
+9	&	pipe 	&	 round trip latency to pass a word from process A to process B and back to A	&	0.014	&	0.164	&	0.032	&	0.034	\\	\hline
+10	&	fork	&	 fork and exit 	&	1.084	&	6.641	&	1.640	&	2.061	\\	\hline
+11	&	exec	&	 fork, exec and exit	&	3.065	&	20.543	&	6.254	&	7.533	\\	\hline
+12	&	sh	&	 fork, exec sh -c and exit	&	6.645	&	45.164	&	13.842	&	16.327	\\	\hline
+
 
 
         \hline
@@ -251,26 +252,6 @@ only the most frequently executed opcodes is likely to produce large improvement
 \end{table*} 
 
 
-\begin{table*}
-\centering
-\caption{Context switch times in $ms$}
-      \begin{tabular}{|l | c| c |c |c|} \hline
-       Case\verb, ,  & Bare-metal \verb, ,& Base KVM \verb, , & LABT KVM \verb, ,& PV KVM \\ \hline
-
-2p0k	&	0.004	&	0.028	&	0.007	&	0.011	\\ \hline
-2p16k	&	0.007	&	0.034	&	0.013	&	0.012	\\ \hline
-2p32k	&	0.015	&	0.067	&	0.012	&	0.012	\\ \hline
-8p0k	&	0.005	&	0.151	&	0.05	&	0.056	\\ \hline
-8p16k	&	0.023	&	0.331	&	0.097	&	0.096	\\ \hline
-8p32k	&	0.065	&	0.358	&	0.136	&	0.121	\\ \hline
-16p0k	&	0.005	&	0.165	&	0.057	&	0.059	\\ \hline
-16p16k	&	0.048	&	0.366	&	0.129	&	0.122	\\ \hline
-16p32k	&	0.171	&	0.448	&	0.183	&	0.184	\\ \hline
-
-        \hline
-      \end{tabular}
-\label{tab:lpGMKLsmall}
-\end{table*} 
 
 \begin{table}[!b]
 \centering
@@ -339,27 +320,55 @@ only the most frequently executed opcodes is likely to produce large improvement
 \begin{table*}
 \centering
 \caption{Performance comparison: Refer Table \ref{tab:diff_approaches}}
-      \begin{tabular}{|l|  r r r |} \hline
-	         Benchmark\verb, ,& BT-Trace \verb, ,& Avoid-RPF \verb, , & Adapt-TLB  \\ \hline
+      \begin{tabular}{|l| r r r r |} \hline
+	         Benchmark\verb, ,& KVM \verb, , & BT-Trace \verb, ,& Avoid-RPF \verb, , & Adapt-TLB  \\ \hline
 
-     & \multicolumn{3}{c|}{ Running Time in $sec$}\\ \cline {2-4}  
-     Linux boot	&	13.10	&	12.24	&	13.29		\\
-Echo Spawn	&	8.25	&	7.26	&	7.93	\\
-Find	&	0.92	&	0.71	&	1.15	\\ \cline{2-4}
+     & \multicolumn{4}{c|}{ Running Time in $sec$}\\ \cline {2-5}  
+Linux boot	&	30.03	&	13.10	&	12.24	&	13.29	\\
+Echo Spawn	&	21.34	&	8.25	&	7.26	&	7.93	\\
+Find	&	1.89	&	0.92	&	0.71	&	1.15	\\
+\cline{2-5}
 	   
-     & \multicolumn{3}{c|}{Latency in $msec$}\\  \cline{2-4}
-syscall	&	0.008	&	0.003	&	0.001		\\
-stat	&	0.012	&	0.007	&	0.006		\\
-fstat	&	0.009	&	0.004	&	0.004		\\
-open/close:	&	0.024	&	0.014	&		0.032	\\
-sig hndl	&	0.009	&	0.004	&		0.004	\\
-pipe 	&	0.054	&	0.034	&	0.135		\\
-fork	&	2.240	&	2.061	&	2.823		\\
-exec	&	8.384	&	7.533	&	8.849		\\
-sh	&	17.615	&	16.327	&	21.813		\\        \hline
+     & \multicolumn{4}{c|}{Latency in $msec$}\\  \cline{2-5}
+syscall	&	0.020	&	0.008	&	0.003	&	0.010	\\
+stat	&	0.033	&	0.012	&	0.007	&	0.006	\\
+fstat	&	0.021	&	0.009	&	0.004	&	0.004	\\
+open/close:	&	0.067	&	0.024	&	0.014	&	0.031	\\
+sig hndl	&	0.024	&	0.009	&	0.004	&	0.004	\\
+pipe 	&	0.164	&	0.054	&	0.034	&	0.135	\\
+fork	&	6.641	&	2.240	&	2.061	&	2.823	\\
+exec	&	20.543	&	8.384	&	7.533	&	8.849	\\
+sh	&	45.164	&	17.615	&	16.327	&	21.813	\\
+
+ \hline
       \end{tabular}
 \label{tab:detailed_results}
 \end{table*} 
+
+\begin{table*}
+\centering
+\caption{Sources of VM Exits}
+      \begin{tabular}{|l| p{1cm}| r| r| p{1cm} | r| r| p{1cm} |r| r  |} \hline
+	         Benchmark&  \multicolumn{3}{c|} {BT-Trace} & \multicolumn{3}{c|} {Avoid-RPF} \verb, ,& \multicolumn{3}{c|} {Adapt-TLB} \\ \hline
+
+     &Priv. Exits&TLBVIRT&DSI &Priv. Exits&TLBVIRT&DSI &Priv. Exits&TLBVIRT&DSI \\ \hline  
+Boot	&	44163	&	335125	&	455761	&	43123	&	327477	&	18036	&	47500	&	348289	&	456107	\\ \hline
+Echo Spawn	&	36950	&	525249	&	513745	&	35849	&	503232	&	17999	&	36657	&	488791	&	516483	\\ \hline
+Find	&	909	&	2318	&	96931	&	737	&	2290	&	39	&	1114	&	192217	&	18291	\\ \hline
+syscall	&	171	&	1117	&	23640	&	157	&	1090	&	44	&	166	&	1090	&	21597	\\ \hline
+stat	&	158	&	1100	&	15449	&	155	&	1073	&	43	&	160	&	3019	&	42	\\ \hline
+fstat	&	165	&	1117	&	21201	&	158	&	1109	&	44	&	162	&	2964	&	44	\\ \hline
+open/close	&	169	&	1102	&	15342	&	169	&	1080	&	43	&	185	&	23712	&	43	\\ \hline
+sig hndl	&	162	&	1140	&	19541	&	156	&	1078	&	260	&	165	&	1074	&	19478	\\ \hline
+pipe	&	39170	&	1335	&	229665	&	60450	&	1322	&	51	&	21718	&	261374	&	17807	\\ \hline
+fork	&	543	&	5825	&	6579	&	530	&	5712	&	345	&	548	&	14987	&	347	\\ \hline
+exec	&	638	&	7969	&	7209	&	624	&	8075	&	238	&	640	&	18119	&	241	\\ \hline
+sh	&	1179	&	15699	&	14706	&	1151	&	15746	&	439	&	1161	&	34827	&	442	\\ \hline
+      \end{tabular}
+\label{tab:vm_exit_stats}
+\end{table*} 
+
+
 
 \section{In-place Binary Translation}
 \label{sec:bintrans}
@@ -724,31 +733,7 @@ XXX Discuss some workloads. Overall,
 Optimization 3 results in a XXX\% average performance
 improvements on our macrobenchmarks.
 
-\begin{table}[!b]
-\centering
-\caption{Performance improvement for LABT}
-     \begin{tabular}{lcc} \hline
-       Benchmark  & Time & Improvement( \% over Base)  \\ \hline
-       Linux Boot & 13.1 & 129  \\
-       Echo Spawn & 8.2 & 166  \\
-       Find & - & -  \\
-       \hline
-     \end{tabular}
-\label{tab:ExpWithout1}
-\end{table}
 
-\begin{table}[!b]
-\centering
-\caption{Performance improvement for LABT}
-     \begin{tabular}{lcc} \hline
-       Benchmark  & Time & Improvement( \% over Base)  \\ \hline
-       Linux Boot & 13.1 & 129  \\
-       Echo Spawn & 8.2 & 166  \\
-       Find & - & -  \\
-       \hline
-     \end{tabular}
-\label{tab:ExpWithout2}
-\end{table}
 
 We next measure the overhead of our adaptive page resizing algorithm. To
 measure overhead, we statically configured the shadow TLB to the best
