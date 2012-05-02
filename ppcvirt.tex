@@ -328,7 +328,7 @@ binary translation with all read/write tracing optimizations (our approach)}
 \centering
 \caption{Performance comparison: Refer Table \ref{tab:diff_approaches}}
       \begin{tabular}{|l| r r r r |} \hline
-	         Benchmark\verb, ,& KVM \verb, , & BT-Trace \verb, ,& Avoid-RPF \verb, , & Adapt-TLB  \\ \hline
+	         Benchmark\verb, ,& KVM \verb, , & BT-Trace \verb, ,& Adapt-DM \verb, , & Adapt-PR  \\ \hline
 
      & \multicolumn{4}{c|}{ Running Time in $sec$}\\ \cline {2-5}  
 Linux boot	&	30.03	&	13.10	&	12.24	&	13.29	\\
@@ -355,22 +355,24 @@ sh	&	45.164	&	17.615	&	16.327	&	21.813	\\
 \begin{table*}
 \centering
 \caption{Sources of VM Exits}
-      \begin{tabular}{|l| p{1cm}| r| r| p{1cm} | r| r| p{1cm} |r| r  |} \hline
-	         Benchmark&  \multicolumn{3}{c|} {BT-Trace} & \multicolumn{3}{c|} {Avoid-RPF} \verb, ,& \multicolumn{3}{c|} {Adapt-TLB} \\ \hline
+      \begin{tabular}{|@{}p{1cm}|p{1cm}|p{1cm}|@{}c@{}| p{0.8cm}| p{1cm}|@{}c@{}| p{1cm} | p{1cm}|@{}c@{}| p{1cm} |p{1cm}|@{}c@{} |} \hline
+	         &  \multicolumn{3}{c|} {KVM}& \multicolumn{3}{c|} {BT-Trace} & \multicolumn{3}{c|} {Adapt-DM} \verb, ,& \multicolumn{3}{c|} {Adapt-PR} \\ \hline
 
-     &Priv. Exits&TLBVIRT&DSI &Priv. Exits&TLBVIRT&DSI &Priv. Exits&TLBVIRT&DSI \\ \hline  
-Boot	&	44163	&	335125	&	455761	&	43123	&	327477	&	18036	&	47500	&	348289	&	456107	\\ \hline
-Echo Spawn	&	36950	&	525249	&	513745	&	35849	&	503232	&	17999	&	36657	&	488791	&	516483	\\ \hline
-Find	&	909	&	2318	&	96931	&	737	&	2290	&	39	&	1114	&	192217	&	18291	\\ \hline
-syscall	&	171	&	1117	&	23640	&	157	&	1090	&	44	&	166	&	1090	&	21597	\\ \hline
-stat	&	158	&	1100	&	15449	&	155	&	1073	&	43	&	160	&	3019	&	42	\\ \hline
-fstat	&	165	&	1117	&	21201	&	158	&	1109	&	44	&	162	&	2964	&	44	\\ \hline
-open/close	&	169	&	1102	&	15342	&	169	&	1080	&	43	&	185	&	23712	&	43	\\ \hline
-sig hndl	&	162	&	1140	&	19541	&	156	&	1078	&	260	&	165	&	1074	&	19478	\\ \hline
-pipe	&	39170	&	1335	&	229665	&	60450	&	1322	&	51	&	21718	&	261374	&	17807	\\ \hline
-fork	&	543	&	5825	&	6579	&	530	&	5712	&	345	&	548	&	14987	&	347	\\ \hline
-exec	&	638	&	7969	&	7209	&	624	&	8075	&	238	&	640	&	18119	&	241	\\ \hline
-sh	&	1179	&	15699	&	14706	&	1151	&	15746	&	439	&	1161	&	34827	&	442	\\ \hline
+     &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI \\ \hline  
+Boot	&	12085062	&	458339	&	13721	&	44163	&	335125	&	455761	&	43123	&	327477	&	18036	&	47500	&	348289	&	456107	\\	\hline
+Echo Spawn	&	9850769	&	417554	&	16999	&	36950	&	525249	&	513745	&	35849	&	503232	&	17999	&	36657	&	488791	&	516483	\\	\hline
+Find	&	788358	&	2106	&	41	&	909	&	2318	&	96931	&	737	&	2290	&	39	&	1114	&	192217	&	18291	\\	\hline
+hanoi	&	26125	&	507	&	25	&	820	&	670	&	1115	&	818	&	619	&	23	&	825	&	1391	&	695	\\	\hline
+context	&	460756	&	674	&	33	&	33334	&	1200	&	195372	&	52565	&	819	&	31	&	20328	&	248285	&	16872	\\	\hline
+syscall	&	54274	&	932	&	45	&	171	&	1117	&	23640	&	157	&	1090	&	44	&	166	&	1090	&	21597	\\	\hline
+stat	&	49683	&	946	&	45	&	158	&	1100	&	15449	&	155	&	1073	&	43	&	160	&	3019	&	42	\\	\hline
+fstat	&	51839	&	945	&	43	&	165	&	1117	&	21201	&	158	&	1109	&	44	&	162	&	2964	&	44	\\	\hline
+open/ close	&	55420	&	933	&	44	&	169	&	1102	&	15342	&	169	&	1080	&	43	&	185	&	23712	&	43	\\	\hline
+sig hndl	&	52128	&	945	&	39	&	162	&	1140	&	19541	&	156	&	1078	&	260	&	165	&	1074	&	19478	\\	\hline
+pipe	&	918788	&	1146	&	52	&	39170	&	1335	&	229665	&	60450	&	1322	&	51	&	21718	&	261374	&	17807	\\	\hline
+fork	&	68775	&	2575	&	173	&	543	&	5825	&	6579	&	530	&	5712	&	345	&	548	&	14987	&	347	\\	\hline
+exec	&	149439	&	6430	&	239	&	638	&	7969	&	7209	&	624	&	8075	&	238	&	640	&	18119	&	241	\\	\hline
+sh	&	295751	&	12952	&	441	&	1179	&	15699	&	14706	&	1151	&	15746	&	439	&	1161	&	34827	&	442	\\	\hline
       \end{tabular}
 \label{tab:vm_exit_stats}
 \end{table*} 
