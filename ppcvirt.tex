@@ -371,7 +371,7 @@ can also be implemented for closed-source guests.
 
 The execute-only page reserved in guest address space has a special
 constraint. As we explain in the
-next section, this page must lie within $\pm$16MB of the
+next section, this page must lie within $\pm$32MB of the
 guest kernel's code section, for certain translations to be possible.
 Given that most guest kernel code sections are
 small (e.g., XXX MB for Linux), this constraint is usually easy to satisfy.
@@ -404,15 +404,15 @@ We use Power Architecture's unconditional direct {\tt branch} opcode to jump to 
 translation cache from the patch-site. The {\tt branch} opcode specifies a 26-bit
 branch offset, with either absolute or relative addressing. This constrains us
 to place the emulation code either within a 24-bit distance of the patch-site (i.e.,
-$\pm$16MB) or in the top or bottom 16MB of the guest's virtual address
+$\pm$32MB) or in the top or bottom 32MB of the guest's virtual address
 space (see Figure~\ref{fig:branchtargets}). We ensure this by mapping the shared
-page containing our translation cache within $\pm$16MB of the kernel's code
+page containing our translation cache within $\pm$32MB of the kernel's code
 section (as also mentioned in Section~\ref{sec:sharedspace}). XXX Discuss loadable
 modules and how they are handled.
 
 We investigated at least two other possibilities to avoid this constraint
 on the branch instruction. In our first attempt, we tried placing the
-translation cache on a page in the top 16MB of the kernel's virtual address
+translation cache on a page in the top 32MB of the kernel's virtual address
 space. This allows the {\tt branch} opcode to reach the emulation code from
 the patch-site using absolute addressing. However, the emulation code needs to
 jump back to the instruction following the branch opcode. This jump-back must not
