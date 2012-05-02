@@ -71,8 +71,7 @@ code at startup time to replace most privileged instructions with
 hypervisor-aware unprivileged counterparts ({\em hypercalls}).
 At guest startup, the guest creates a shared address space with
 the host through a hypercall. This shared address space
-is used in future to efficiently exchange arguments and results of other hypercalls
-between guest and host.
+is used in future to efficiently exchange arguments and results of other hypercalls between guest and host.
 Table~\ref{tab:kvm_performance} lists KVM performance after enabling paravirtual
 extensions in the guest and the host. The performance improves significantly over
 unmodified KVM.
@@ -333,24 +332,24 @@ improvements.
 \centering
 \caption{Performance comparison: Refer Table \ref{tab:diff_approaches}}
       \begin{tabular}{|l| r r r r |} \hline
-	         Benchmark\verb, ,& KVM \verb, , & Static-TLB \verb, ,& Adapt-DM \verb, , & Adapt-PR  \\ \hline
+	         Benchmark\verb, ,& KVM \verb, , & Static-TLB \verb, ,& Adapt-PR \verb, , & Adapt-DM  \\ \hline
 
      & \multicolumn{4}{c|}{ Running Time in $sec$}\\ \cline {2-5}  
-Linux boot	&	30.03	&	13.10	&	12.24	&	13.29	\\
-Echo Spawn	&	21.34	&	8.25	&	7.26	&	7.93	\\
-Find	&	1.89	&	0.92	&	0.71	&	1.15	\\
+Linux boot	&	30.03	&	13.10	&	13.29	&	12.24	\\
+Echo Spawn	&	21.34	&	8.25	&	7.93	&	7.26	\\
+Find	&	1.89	&	0.92	&	1.15	&	0.71	\\
 \cline{2-5}
 	   
      & \multicolumn{4}{c|}{Latency in $msec$}\\  \cline{2-5}
-syscall	&	0.020	&	0.008	&	0.003	&	0.010	\\
-stat	&	0.033	&	0.012	&	0.007	&	0.006	\\
+syscall	&	0.020	&	0.008	&	0.010	&	0.003	\\
+stat	&	0.033	&	0.012	&	0.006	&	0.007	\\
 fstat	&	0.021	&	0.009	&	0.004	&	0.004	\\
-open/close:	&	0.067	&	0.024	&	0.014	&	0.031	\\
+open/close:	&	0.067	&	0.024	&	0.031	&	0.014	\\
 sig hndl	&	0.024	&	0.009	&	0.004	&	0.004	\\
-pipe 	&	0.164	&	0.054	&	0.034	&	0.135	\\
-fork	&	6.641	&	2.240	&	2.061	&	2.823	\\
-exec	&	20.543	&	8.384	&	7.533	&	8.849	\\
-sh	&	45.164	&	17.615	&	16.327	&	21.813	\\
+pipe 	&	0.164	&	0.054	&	0.135	&	0.034	\\
+fork	&	6.641	&	2.240	&	2.823	&	2.061	\\
+exec	&	20.543	&	8.384	&	8.849	&	7.533	\\
+sh	&	45.164	&	17.615	&	21.813	&	16.327	\\
 
  \hline
       \end{tabular}
@@ -406,7 +405,7 @@ sh	&	1179	&	15699	&	14706	&	1161	&	34827	&	442	\\	\hline
 
 
       \end{tabular}
-\label{tab:vm_exit_stats}
+\label{tab:adaptive_tlb_resizing}
 \end{table*} 
 
 
@@ -752,7 +751,7 @@ on such a system.
 
 Optimization 2 adaptively resizes the shadow TLB entries to reduce
 the number of tracing-induced page faults and results in
-performance improvements over unmodified KVM. The XXX column
+performance improvements over unmodified KVM. The column 3
 in Table~\ref{tab:detailed_results} shows the performance of KVM with
 Optimizations 1~and~2.
 Different workloads show different improvements. The improvement primarily depends
@@ -768,7 +767,7 @@ of VM exits and page faults for different workloads.
 %to significant (around 10\% for Linux guest boot) performance overhead.
 
 Optimization 3 further reduces the number of tracing page faults by
-making copies of frequently read data residing in traced pages. The XXX column in
+making copies of frequently read data residing in traced pages. The column 3 in
 Table~\ref{tab:vm_exit_stats} confirms this reduction on almost all workloads.
 XXX Discuss some workloads. Overall,
 Optimization 3 results in a XXX\% average performance
