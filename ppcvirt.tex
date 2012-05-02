@@ -359,19 +359,17 @@ sh	&	45.164	&	17.615	&	21.813	&	16.327	\\
 \begin{table*}
 \centering
 \caption{Sources of VM Exits}
-      \begin{tabular}{|@{}p{1cm}|p{1cm}|p{1cm}|@{}c@{}| p{0.8cm}| p{1cm}|@{}c@{}| p{1cm} | p{1cm}|@{}c@{}| p{1cm} |p{1cm}|@{}c@{} |} \hline
+      \begin{tabular}{|@{}p{1cm}|@{}p{1.2cm}|p{1cm}|@{}c@{}| p{0.8cm}| p{1cm}|@{}c@{}| p{1cm} | p{1cm}|@{}c@{}| p{1cm} |p{1cm}|@{}c@{} |} \hline
 	         &  \multicolumn{3}{c|} {KVM}& \multicolumn{3}{c|} {Adapt-PR} & \multicolumn{3}{c|} {Adapt-DM} \verb, ,& \multicolumn{3}{c|} {KVM-PV} \\ \hline
 
      &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI \\ \hline  
 Boot	&	12085062	&	458339	&	13721	&	47500	&	348289	&	456107	&	43123	&	327477	&	18036	&	42280	&	291047	&	13697	\\	\hline
 Echo Spawn	&	9850769	&	417554	&	16999	&	36657	&	488791	&	516483	&	35849	&	503232	&	17999	&	35419	&	432076	&	19008	\\	\hline
 Find	&	788358	&	2106	&	41	&	1114	&	192217	&	18291	&	737	&	2290	&	39	&	719	&	1945	&	41	\\	\hline
-hanoi	&	26125	&	507	&	25	&	825	&	1391	&	695	&	818	&	619	&	23	&	816	&	526	&	25	\\	\hline
-context	&	460756	&	674	&	33	&	20328	&	248285	&	16872	&	52565	&	819	&	31	&	53661	&	660	&	34	\\	\hline
 syscall	&	54274	&	932	&	45	&	166	&	1090	&	21597	&	157	&	1090	&	44	&	159	&	941	&	43	\\	\hline
 stat	&	49683	&	946	&	45	&	160	&	3019	&	42	&	155	&	1073	&	43	&	155	&	930	&	43	\\	\hline
 fstat	&	51839	&	945	&	43	&	162	&	2964	&	44	&	158	&	1109	&	44	&	160	&	946	&	45	\\	\hline
-open/close	&	55420	&	933	&	44	&	185	&	23712	&	43	&	169	&	1080	&	43	&	173	&	938	&	43	\\	\hline
+open/ close	&	55420	&	933	&	44	&	185	&	23712	&	43	&	169	&	1080	&	43	&	173	&	938	&	43	\\	\hline
 sig hndl	&	52128	&	945	&	39	&	165	&	1074	&	19478	&	156	&	1078	&	260	&	158	&	946	&	43	\\	\hline
 pipe	&	918788	&	1146	&	52	&	21718	&	261374	&	17807	&	60450	&	1322	&	51	&	62074	&	1172	&	54	\\	\hline
 fork	&	68775	&	2575	&	173	&	548	&	14987	&	347	&	530	&	5712	&	345	&	522	&	4860	&	360	\\	\hline
@@ -391,8 +389,6 @@ sh	&	295751	&	12952	&	441	&	1161	&	34827	&	442	&	1151	&	15746	&	439	&	1134	&	132
 Boot	&	44163	&	335125	&	455761	&	47500	&	348289	&	456107	\\	\hline
 Echo Spawn	&	36950	&	525249	&	513745	&	36657	&	488791	&	516483	\\	\hline
 Find	&	909	&	2318	&	96931	&	1114	&	192217	&	18291	\\	\hline
-hanoi	&	820	&	670	&	1115	&	825	&	1391	&	695	\\	\hline
-context	&	33334	&	1200	&	195372	&	20328	&	248285	&	16872	\\	\hline
 syscall	&	171	&	1117	&	23640	&	166	&	1090	&	21597	\\	\hline
 stat	&	158	&	1100	&	15449	&	160	&	3019	&	42	\\	\hline
 fstat	&	165	&	1117	&	21201	&	162	&	2964	&	44	\\	\hline
@@ -667,8 +663,8 @@ creation of a new patch-site (due to a VM-exit on a privileged instruction) or a
 large number of page faults due to read/write tracing,
 the size of the page
 containing the corresponding patch-site is halved, subject to
-a minimum page size of 256K.
-The lower bound on page size (256K) limits the maximum number of TLB entries.
+a minimum page size of 64K.
+The lower bound on page size (64K) limits the maximum number of TLB entries.
 
 To reduce TLB pressure, TLB entries with identical privileges are
 opportunistically merged into
@@ -763,14 +759,32 @@ Table~\ref{tab:vm_exit_stats} shows the number of VM-exits and page faults due
 to all these three reasons for each workload, before and after our optimizations.
 XXX Discuss the changes in the number
 of VM exits and page faults for different workloads.
+There is a drastic change in the number of VM-exits for all the workloads. 
+As expected, we witness increase in tracing page faults which are generated 
+by data accesses to traced pages.
+ This increase in number of tracing page faults is accompanied by increased TLB pressure
+ due to TLB splitting during adaptive page resizing for tracing purpose.
+ Overall, the performance gained by reduction in number of VM-exits is more than the corresponding increase in number of tracing page faults and page faults due to increased TLB pressure.
+  For all the workloads, this performance gain ranges from 1.2x to 6x (Table \ref{tab:detailed_results})
+  Further, relative share of VM-exits, tracing page faults and TLB pressure in total
+   exits experienced by the specific workload will determine the overall performance gain.
+
+   
 %For many workloads, the increase in tracing-induced page faults leads
 %to significant (around 10\% for Linux guest boot) performance overhead.
 
 Optimization 3 further reduces the number of tracing page faults by
 making copies of frequently read data residing in traced pages. The column 3 in
 Table~\ref{tab:vm_exit_stats} confirms this reduction on almost all workloads.
-XXX Discuss some workloads. Overall,
-Optimization 3 results in a XXX\% average performance
+XXX Discuss some workloads. 
+For example, in linux boot, most of the tracing page faults arise from the data read 
+accesses. With this optimization, we are able to copy that frequently accessed data from
+ a traced page to shared page and trace all these data accesses and patch them to reflect
+ the new address.
+For linux boot, we also observe that most of these accesses originate from small number of instructions. 
+
+Overall,
+Optimization 3 results in a 169\% average performance
 improvements on our macrobenchmarks.
 
 
@@ -780,6 +794,10 @@ measure overhead, we statically configured the shadow TLB to the best
 possible configuration (number of kernel TLB entries, size of each TLB
 entry, etc.). We found experimentally that for a Linux guest with 5MB code
 section, the best configuration is to have a 5 distinct pages, one of size
+(XXX the guest tlb is of 256 MB, so we need 13 enteries 
+1 of 4 MB, four of size 1 MB each, 2 of 4 MB each, 3 of 16 MB each, 3 of 64 MB; out of 
+these 13 enteries only first 2 enteries are marked as traced to cover kernel text
+section)
 4MB ({\tt 0xc0000000-0xc03fffff}), and
 four of size 1MB each (covering {\tt 0xc0400000-0xc07fffff}). We compared the
 performance of
@@ -787,7 +805,14 @@ our statically configured TLB configuration with that of our adaptive resizing
 algorithm.
 Table~\ref{tab:adaptive_tlb_resizing} summarizes our results for the macrobenchmarks.
 We observe that our resizing algorithm performs within 1-2\% of the optimal.
+(XXX for some case, it performs badly and is within 30\%, but for some cases it outperforms.)
 Our algorithm also settles on the same optimal configuration; the overhead is
+(XXX algo. will try to remain in optimal configuration for most of the time 
+but will further breakdown or diverge if it finds a burst of DSI exits to reduce this
+and will try to merge as soon as DSI exits vanish. This also explains for the poor 
+performance of this compared to static tlb for find workload. Since find workload runs
+for a very short time, it is not able to merge the tlb enteries back and reduce tlb pressure.)
+ 
 primarily due to the few extra page faults in the beginning to reach this configuration.
 
 \section{Discussion}
