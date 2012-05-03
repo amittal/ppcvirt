@@ -18,7 +18,7 @@
   Power Architecture\textsuperscript{\textregistered} is popular and widespread on embedded systems, and such
   platforms are
   increasingly
-  being used to run virtual machines\cite{embedded_virtualization}. While the Power
+  being used to run virtual machines\cite{embedded_virtualization, KVM_on_embedded_Power}. While the Power
   Architecture meets the
   Popek-and-Goldberg virtualization requirements for traditional trap-and-emulate
   style virtualization, the performance overhead of virtualization remains high.
@@ -47,7 +47,9 @@
 \section{Introduction}
 Embedded devices based on Power Architecture are dominant for their
 favourable power/performance characteristics. Virtualization on these platforms is
-compelling for several applications\cite{embedded_virtualization}. While newer Power
+compelling for several applications including high availability (active/standby
+configuration without additional hardware), in-service upgrade, and many
+more\cite{embedded_virtualization, KVM_on_embedded_Power}. While newer Power
 Architecture platforms
 have explicit support for efficient virtualization\cite{freescale_embedded_hyperv, hwassists_hyperv}, a majority of
 prevalent embedded devices run on older (and cheaper) Power Architecture platforms that use
@@ -350,7 +352,9 @@ them using a hypercall.
 This is the only guest modification we require.
 We implement this page reservation
 and hypercall as a virtual guest device driver (similar to the ``tools'' mechanism
-used in many virtualization solutions).
+used in many virtualization solutions). We envisage mechanisms to setup
+such shared address spaces using well-known standards for device
+discovery (e.g., ePAPR\cite{ePAPR}) in future.
 We require XXX LOC changes in a Linux guest to implement this mechanism. This is
 significantly less than the XXXX LOC required by the Linux paravirtual
 extensions.
@@ -394,10 +398,6 @@ this constraint is usually easy to satisfy. If the execute-only
 pages happen to lie beyond 32MB distance of a privileged instruction, that
 instruction is precluded from being optimized. Other instructions that lie
 within 32MB of the translation cache can still be optimized.
-
-Finally, we note that requiring a guest-side device driver for performance
-is a well-accepted virtualization practice. For example, x86-based hypervisors
-typically require installation of ``tools'' in the guest for better performance.
 
 \subsection{Translation of Privileged Instructions}
 Some privileged instructions can
