@@ -680,6 +680,18 @@ We implement the following optimizations in Linux/KVM:
   \item Adaptive Page Resizing
   \item Adaptive Data Mirroring and Translation of Faulting Instructions
 \end{enumerate}
+Table~\ref{tab:detailed_results} summarizes our performance results before and
+after these optimizations.
+Different workloads show different improvements. The improvement primarily depends
+on a three-way tradeoff between the number of VM exits due to privileged
+instructions, the number of
+tracing page faults, and the number of page faults due to increased TLB pressure.
+Table~\ref{tab:vm_exit_stats} shows the number of VM exits and page faults due
+to all these three reasons for each workload, before and after our optimizations.
+We also show the number of exits in the paravirtual solution ({\tt KVM-PV}) for
+comparison. The number of exits in {\tt KVM-PV} can be considered as a
+lower-bound on the number of exits by any host-side binary translation solution.
+
 Just using Optimization 1 does not improve performance for a Linux guest.
 In fact, we find that read/write tracing severely impairs performance because
 the guest uses a huge 256MB page to map the kernel's code and data. If we
@@ -739,39 +751,24 @@ exits due to access violations are due to read/write accesses to pages which do 
 \end{table*} 
 \end{center}
 
-
 Optimization 2 adaptively resizes the shadow TLB entries to reduce
 the number of tracing-induced page faults and results in
 performance improvements over unmodified KVM. The second column ({\tt Adapt-PR})
 in Table~\ref{tab:detailed_results} shows the performance of KVM with
 Optimizations~1~and~2.
-Different workloads show different improvements. The improvement primarily depends
-on a three-way tradeoff between the number of VM exits due to privileged
-instructions, the number of
-tracing page faults, and the number of page faults due to increased TLB pressure.
-In our experience, this delicate three-way tradeoff requires careful
-performance tuning.
-Table~\ref{tab:vm_exit_stats} shows the number of VM exits and page faults due
-to all these three reasons for each workload, before and after our optimizations.
-We also show the number of exits in the paravirtual solution ({\tt KVM-PV}) for
-comparison. In a way, the number of exits occurring in {\tt KVM-PV} is the best
-achievable by any host-side binary translation solution.
-
 We first discuss the {\tt lmbench} microbenchmarks. The running time
 of all microbenchmarks improves with Optimizations~1~and~2. The average improvement
 is XXX\%, with the maximum improvement of 6x in stat. The improvement in
 a benchmark primarily depends on the reduction in the number of privileged exits.
 Different microbenchmarks show different reductions.
-
 We next discuss the improvement on macrobenchmarks using Optimizations~1~and~2.
 We observe an performance improvement of XXX\% on the macrobenchmarks, with the
 maximum improvement seen in Linux boot, which also shows the maximum reduction
 (XXX\%) in exits due to privileged instructions.
-
 For both microbenchmarks and macrobenchmarks, we notice an increase in the
 number of TLB misses and access violations (due to tracing-induced page faults)
 on average. The net effect however remains positive. Optimization~3 further
-reduces the access violations. As we will see later, Optimization~3 also helps
+reduces these access violations. As we will see later, Optimization~3 also helps
 in reducing TLB misses.
 
 Optimization~3 further reduces the number of tracing-induced page faults
@@ -821,9 +818,13 @@ The only exception is the {\tt find} benchmark, where we find that
 our adaptive algorithm first breaks the guest into a large number
 of smaller pages, and then does not get enough time to merge them back. This
 results in a larger number of overall TLB misses (as also shown in
-Table~\ref{tab:adaptive_tlb_resizing_exits}). The microbenchmarks
-are also short-lived, but they have a much shorter memory footprint (as compared
-to {\tt find}) and hence do not show a large increase in TLB misses.
+Table~\ref{tab:adaptive_tlb_resizing_exits}), and happens primarily due
+to the short-lived nature of the benchmark. Running the benchmark longer shows
+performance comparable to the static configuration. We do not
+see this effect in microbenchmarks (which are
+also short-lived), because they have a much shorter memory footprint
+and hence do not show a large increase in TLB misses due to
+page fragmentation.
 \begin{table*}
 \centering
       \begin{tabular}{|l| r r |} \hline
@@ -851,7 +852,6 @@ sh	&	17.615	&	21.813\\
 a statically configured TLB ({\tt Static-TLB}). The static TLB configuration was setup such that it provides the best performance for the Linux boot benchmark.}
 \end{table*} 
 
-
 \begin{table*}
 \centering
 \begin{tabular}{l|@{ }c@{ }|p{1cm}|c|p{1cm}|@{ }c@{ }|p{1cm}|c|p{1cm}} \hline
@@ -871,7 +871,7 @@ fork	&&	543	&	5825	&	6579	&&	548	&	14987	&	347	\\	\hline
 exec	&&	638	&	7969	&	7209	&&	640	&	18119	&	241	\\	\hline
 sh	&&	1179	&	15699	&	14706	&&	1161	&	34827	&	442	\\	\hline
       \end{tabular}
-\label{tab:adaptive_tlb_resizing}
+\label{tab:adaptive_tlb_resizing_exits}
 \caption{Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}.}
 \end{table*} 
 
