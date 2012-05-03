@@ -768,13 +768,13 @@ in Table~\ref{tab:detailed_results} shows the performance of KVM with
 Optimizations~1~and~2.
 We first discuss the {\tt lmbench} microbenchmarks. The running time
 of all microbenchmarks improves with Optimizations~1~and~2. The average improvement
-is XXX\%, with the maximum improvement of 6x in stat. The improvement in
+is 3.2x, with the maximum improvement of 6x in stat. The improvement in
 a benchmark primarily depends on the reduction in the number of privileged exits.
 Different microbenchmarks show different reductions.
 We next discuss the improvement on macrobenchmarks using Optimizations~1~and~2.
-We observe an performance improvement of XXX\% on the macrobenchmarks, with the
+We observe an performance improvement of 2.1x on the macrobenchmarks, with the
 maximum improvement seen in Linux boot, which also shows the maximum reduction
-(XXX\%) in exits due to privileged instructions.
+(99\%) in exits due to privileged instructions.
 For both microbenchmarks and macrobenchmarks, we notice an increase in the
 number of TLB misses and access violations (due to tracing-induced page faults)
 on average. The net effect however remains positive. Optimization~3 further
@@ -801,8 +801,8 @@ page faults decreases. This allows Optimization~2 to not have to kick in, allowi
 pages to remain unbroken and privileged-instructions to remain patched.
 This reduces both TLB misses and number of privileged instruction exits.
 We observe this effect in almost all our benchmarks. We notice up to
-XXX\% decrease in the number of TLB misses (for {\tt find} benchmark),
-and up to XXX\% decrease in the number of privileged-instruction
+98\% decrease in the number of TLB misses (for {\tt find} benchmark),
+and up to 9\% decrease in the number of privileged-instruction
 exits (for Linux boot benchmark).
 
 We next measure the overhead and effectiveness
