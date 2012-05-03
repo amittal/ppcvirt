@@ -295,7 +295,7 @@ improvements.
 6	&	fstat	&	Invokes fstat system call on an open file 	&	0.001	&	0.021	&	0.004	&	0.004&5.3x	\\	\hline
 7	&	open/close:	&	Opens a temporary file for reading and closes it immediately 	&	0.006	&	0.067	&	0.013	&	0.014&4.8x	\\	\hline
 8	&	sig hndl	&	Installs a signal handler	&	0.001	&	0.024	&	0.004	&	0.004	& 6x\\	\hline
-9	&	pipe 	&	Passes a word from process A to process B and back to A	and measures round-trip time &	0.014	&	0.164	&	0.032	&	0.034&4.8x	\\	\hline
+9	&	pipe 	&	Passes a word from process A to process B and back to A	and measures round-trip time &	0.003	&	0.066	&	0.010	&	0.010&6.6x	\\	\hline
 10	&	fork	&  Calls {\tt fork} and {\tt exit} 	&	1.084	&	6.641	&	1.640	&	2.061&3.2x	\\	\hline
 11	&	exec	& Calls {\tt fork}, {\tt exec} and {\tt exit} &	3.065	&	20.543	&	6.254	&	7.533&2.7x	\\	\hline
 12	&	sh	& Calls {\tt fork}, {\tt exec sh -c} and {\tt exit}	&	6.645	&	45.164	&	13.842	&	16.327&2.8x	\\	\hline
@@ -735,7 +735,7 @@ stat	&	0.033	&	0.006	&	0.007	\\
 fstat	&	0.021	&	0.004	&	0.004	\\
 open/close:	&	0.067	&	0.031	&	0.014	\\
 sig hndl	&	0.024	&	0.004	&	0.004	\\
-pipe 	&	0.164	&	0.135	&	0.034	\\
+pipe 	&	0.066	&	0.016	&	0.010	\\
 fork	&	6.641	&	2.823	&	2.061	\\
 exec	&	20.543	&	8.849	&	7.533	\\
 sh	&	45.164	&	21.813	&	16.327	\\
@@ -748,7 +748,7 @@ sh	&	45.164	&	21.813	&	16.327	\\
 \begin{table*}
 \centering
 \begin{tabular}{
-  p{1.0cm}@{}|@{ }c@{ }|@{}p{1.3cm}|@{}p{1.0cm}|@{}p{1.0cm}@{}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}@{}} \hline
+  p{1.0cm}@{}|@{ }c@{ }|@{}p{1.3cm}|@{}p{1.0cm}|@{}p{1.0cm}@{}|@{ }c@{ }|@{}p{0.8cm}|@{}p{1.2cm}|@{}p{1.0cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}@{}} \hline
 	         &  & \multicolumn{3}{c|}{\tt KVM}& & \multicolumn{3}{c|}{\tt Adapt-PR} & & \multicolumn{3}{c|}{\tt Adapt-DM} & & \multicolumn{3}{c}{\tt KVM-PV} \\ \hline
 
            &&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol} &&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol.}&&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol}&&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol} \\ \hline  
@@ -760,7 +760,7 @@ stat	&&	49683	&	946	&	45	&&	160	&	3019	&	42	&&	155	&	1073	&	43	&&	155	&	930	&	43
 fstat	&&	51839	&	945	&	43	&&	162	&	2964	&	44	&&	158	&	1109	&	44	&&	160	&	946	&	45	\\	\hline
 open/ close	&&	55420	&	933	&	44	&&	185	&	23712	&	43	&&	169	&	1080	&	43	&&	173	&	938	&	43	\\	\hline
 sig hndl	&&	52128	&	945	&	39	&&	165	&	1074	&	19478	&&	156	&	1078	&	260	&&	158	&	946	&	43	\\	\hline
-pipe	&&	918788	&	1146	&	52	&&	21718	&	261374	&	17807	&&	60450	&	1322	&	51	&&	62074	&	1172	&	54	\\	\hline
+pipe	&&	330970	&	1394	&	36	&&	243	&	2770	&	23233	&&	190	&	1131	&	32	&&	195	&	898	&	28	\\	\hline
 fork	&&	68775	&	2575	&	173	&&	548	&	14987	&	347	&&	530	&	5712	&	345	&&	522	&	4860	&	360	\\	\hline
 exec	&&	149439	&	6430	&	239	&&	640	&	18119	&	241	&&	624	&	8075	&	238	&&	615	&	6549	&	240	\\	\hline
 sh	&&	295751	&	12952	&	441	&&	1161	&	34827	&	442	&&	1151	&	15746	&	439	&&	1134	&	13215	&	440	\\	\hline
@@ -777,7 +777,7 @@ in Table~\ref{tab:detailed_results} shows the performance of KVM with
 Optimizations~1~and~2.
 We first discuss the {\tt lmbench} microbenchmarks. The running time
 of all microbenchmarks improves with Optimizations~1~and~2. The average improvement
-is 220\%, with the maximum improvement of 500\% in stat. The improvement in
+is 253\%, with the maximum improvement of 500\% in stat. The improvement in
 a benchmark primarily depends on the reduction in the number of privileged exits.
 Different microbenchmarks execute different number of privileged
 instructions and show different corresponding reductions.
@@ -875,7 +875,7 @@ stat	 &	0.012	&	0.006\\
 fstat	&	0.009	&	0.004\\
 open/close:	&	0.024	&	0.031\\
 sig hndl	&	0.009	&	0.004\\
-pipe 	&	0.054	&	0.135\\
+pipe 	&	0.020	&	0.016\\
 fork	&	2.240	&	2.823\\
 exec	&	8.384	&	8.849\\
 sh	&	17.615	&	21.813\\
@@ -899,7 +899,7 @@ stat	&&	158	&	1100	&	15449	&&	160	&	3019	&	42	\\	\hline
 fstat	&&	165	&	1117	&	21201	&&	162	&	2964	&	44	\\	\hline
 open/close	&&	169	&	1102	&	15342	&&	185	&	23712	&	43	\\	\hline
 sig hndl	&&	162	&	1140	&	19541	&&	165	&	1074	&	19478	\\	\hline
-pipe	&&	39170	&	1335	&	229665	&&	21718	&	261374	&	17807	\\	\hline
+pipe	&&	277	&	1084	&	61114	&&	243	&	2770	&	23233	\\	\hline
 fork	&&	543	&	5825	&	6579	&&	548	&	14987	&	347	\\	\hline
 exec	&&	638	&	7969	&	7209	&&	640	&	18119	&	241	\\	\hline
 sh	&&	1179	&	15699	&	14706	&&	1161	&	34827	&	442	\\	\hline
