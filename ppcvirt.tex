@@ -699,12 +699,13 @@ after these optimizations.
 Different workloads show different improvements. The improvement primarily depends
 on a three-way tradeoff between the number of VM exits due to privileged
 instructions, the number of
-tracing page faults, and the number of page faults due to increased TLB pressure.
+tracing page faults, and the number of page faults due to increased TLB pressure (TLB misses).
 Table~\ref{tab:vm_exit_stats} shows the number of VM exits and page faults due
 to all these three reasons for each workload, before and after our optimizations.
 We also show the number of exits in the paravirtual solution ({\tt KVM-PV}) for
 comparison. The number of exits in {\tt KVM-PV} can be considered as a
-lower-bound on the number of exits by any host-side binary translation solution.
+lower-bound on the number of exits
+achievable by a host-side binary translation solution.
 
 Just using Optimization 1 does not improve performance for a Linux guest.
 In fact, we find that read/write tracing severely impairs performance because
@@ -791,7 +792,7 @@ Optimization~3 reduces the number of tracing page faults
 by mirroring the data residing on a traced page and patching the corresponding
 access instruction to access the data from the mirrored location in future.
 The reduction is observed in all our benchmarks, except {\tt stat}, {\tt fstat},
-and {\tt open/close}. In these three cases, we notice that
+and {\tt open/close}. In these three cases, we observe that
 almost all tracing page faults are eliminated by Optimization~2 already.
 For these benchmarks, Optimization~2 ensures that the accessed data and the
 patched code are already on separate pages. The average reduction in the number
@@ -812,7 +813,7 @@ XXX\% decrease in the number of TLB misses (for {\tt find} benchmark),
 and up to XXX\% decrease in the number of privileged-instruction
 exits (for Linux boot benchmark).
 
-Overall Optimizations~1,2~and~3 provide performance comparable to
+Overall Optimizations~1,~2~and~3 provide performance comparable to
 paravirtualization. On our macrobenchmarks, we observe an
 average speedup of XXX\% over unmodified KVM. Optimization~3 provides
 significant improvements on many benchmarks, including the {\tt find}
@@ -831,9 +832,9 @@ of size 1MB each (covering {\tt 0xc0400000-0xc07fffff}), two entries
 of size 4MB each (covering {\tt 0xc0800000-0xc0ffffff}),
 three entries of size 16MB each (covering {\tt 0xc1000000-0xc3ffffff}),
 and three entries of size 64MB each (covering {\tt 0xc4000000-0xcfffffff}).
-Of these 13 entries, the first two entries are marked
+Of these 13 entries, the first two entries were marked
 execute-only (kernel code is nearly 5MB long) and the
-rest remain unmodified.
+rest remained unmodified.
 We compared the performance of this configuration with our adaptive page
 resizing algorithm. We disabled Optimization~3 ({\tt Adapt-DM}) for this
 experiment.
