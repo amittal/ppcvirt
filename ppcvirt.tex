@@ -217,15 +217,7 @@ improvements.
 \begin{figure}[!htb]
 \centering
 \includegraphics[scale=0.5]{exit_count.eps}
-\label{fig:opcode_exit_fraction}
-\caption{Main sources of VM exits}
-\end{figure}
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[scale=0.5]{multiple_ins_patching.eps}
-\label{fig:multiple_insns_patching}
-\caption{Figure showing patching of multiple instructions using {\tt bl} instruction. This approach fails in presence of arbitrary guest jumps.}
+\caption{\label{fig:opcode_exit_fraction}Main sources of VM exits}
 \end{figure}
 
 \begin{table}[!b]
@@ -252,17 +244,22 @@ improvements.
 \centering
 
 \includegraphics[scale=0.5]{pc_count.eps}
-\caption{Exit Profile of Different Guest PCs for three different macrobenchmarks}
-\label{fig:pc_profile}
+\caption{\label{fig:pc_profile}Exit Profile of Different Guest PCs for three different macrobenchmarks}
 \end{figure}
 
 \begin{figure}[!htb]
 \centering
 
 \includegraphics[scale=0.5]{txcache.eps}
-\caption{Figure showing patching of multiple instructions with {\tt branch} instruction.}
-\label{fig:txcache}
+\caption{\label{fig:txcache}Figure showing patching of multiple instructions with {\tt branch} instruction.}
 \end{figure}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[scale=0.5]{multiple_ins_patching.eps}
+\caption{\label{fig:multiple_insns_patching}Figure showing patching of multiple instructions using {\tt bl} instruction. This approach fails in presence of arbitrary guest jumps.}
+\end{figure}
+
 
 
 \begin{table}
@@ -307,9 +304,8 @@ improvements.
 
         \hline
       \end{tabular}
-\caption{Performance comparison of bare-metal, unmodified KVM, KVM-paravirtual, and our (KVM-BT) approach. The details of
+\caption{\label{tab:kvm_performance}Performance comparison of bare-metal, unmodified KVM, KVM-paravirtual, and our (KVM-BT) approach. The details of
 the benchmarks, our test system, and the various KVM variants is discussed in Section~\ref{sec:results}. The last column computes the speedup of {\tt KVM-BT} over {\tt KVM}.}
-\label{tab:kvm_performance}
 \end{table*} 
 %\begin{table}[!b]
 %\centering
@@ -427,7 +423,7 @@ For such opcodes, we store the emulation code in the translation cache, and
 patch the original instruction with a {\tt branch} instruction to jump to it's
 emulation code. The emulation code in the
 translation cache is terminated
-with another branch {\em back} to the instruction following the patch-site.
+with another branch {\em back} to the instruction following the patch-site
 (see Figure~\ref{fig:txcache}). Because each patch-site requires a different
 terminating branch instruction, a new translation is generated for
 each patch-site.
@@ -745,8 +741,7 @@ exec	&	20.543	&	8.849	&	7.533	\\
 sh	&	45.164	&	21.813	&	16.327	\\
  \hline
       \end{tabular}
-\label{tab:detailed_results}
-\caption{Performance Improvements obtained by Adaptive Page Resizing ({\tt Adapt-PR}) and Adaptive Data Mirroring ({\tt Adapt-DM}) optimizations.}
+\caption{\label{tab:detailed_results}Performance Improvements obtained by Adaptive Page Resizing ({\tt Adapt-PR}) and Adaptive Data Mirroring ({\tt Adapt-DM}) optimizations.}
 \end{table*} 
 
 \begin{center}
@@ -770,8 +765,7 @@ fork	&&	68775	&	2575	&	173	&&	548	&	14987	&	347	&&	530	&	5712	&	345	&&	522	&	486
 exec	&&	149439	&	6430	&	239	&&	640	&	18119	&	241	&&	624	&	8075	&	238	&&	615	&	6549	&	240	\\	\hline
 sh	&&	295751	&	12952	&	441	&&	1161	&	34827	&	442	&&	1151	&	15746	&	439	&&	1134	&	13215	&	440	\\	\hline
       \end{tabular}
-\label{tab:vm_exit_stats}
-\caption{Frequency of VM exits due to privileged instructions ({\tt Priv. Exits}), TLB misses ({\tt TLB miss}), and access violations ({\tt Acc. Viol}). The
+\caption{\label{tab:vm_exit_stats}Frequency of VM exits due to privileged instructions ({\tt Priv. Exits}), TLB misses ({\tt TLB miss}), and access violations ({\tt Acc. Viol}). The
 exits due to access violations are due to read/write accesses to pages which do not have read/write permissions. These exits occur primarily due to read/write tracing.}
 \end{table*} 
 \end{center}
@@ -887,8 +881,7 @@ exec	&	8.384	&	8.849\\
 sh	&	17.615	&	21.813\\
  \hline
       \end{tabular}
-\label{tab:adaptive_tlb_resizing}
-\caption{Measuring the overhead and performance of adaptive page resizing ({\tt Adapt-PR}) algorithm, in comparison to
+\caption{\label{tab:adaptive_tlb_resizing}Measuring the overhead and performance of adaptive page resizing ({\tt Adapt-PR}) algorithm, in comparison to
 a statically configured TLB ({\tt Static-TLB}). The static TLB configuration was setup such that it provides the best performance for the Linux boot benchmark. We disable {\tt Adapt-DM} optimization for this experiment.}
 \end{table*} 
 
@@ -911,8 +904,7 @@ fork	&&	543	&	5825	&	6579	&&	548	&	14987	&	347	\\	\hline
 exec	&&	638	&	7969	&	7209	&&	640	&	18119	&	241	\\	\hline
 sh	&&	1179	&	15699	&	14706	&&	1161	&	34827	&	442	\\	\hline
       \end{tabular}
-\label{tab:adaptive_tlb_resizing_exits}
-\caption{Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}. We disable {\tt Adapt-DM} optimization for this experiment.}
+\caption{\label{tab:adaptive_tlb_resizing_exits}Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}. We disable {\tt Adapt-DM} optimization for this experiment.}
 \end{table*} 
 
 \section{Discussion}
