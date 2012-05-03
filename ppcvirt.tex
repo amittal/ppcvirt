@@ -15,20 +15,20 @@
 
 \maketitle
 \begin{abstract}
-  Power Architecture\textsuperscript{\textregistered} is popular and widespread on embedded systems, and such
+  Power Architecture\textsuperscript{\textregistered} platforms are popular and widespread on embedded systems, and such
   platforms are
   increasingly
   being used to run virtual machines\cite{embedded_virtualization, KVM_on_embedded_Power}. While the Power
-  Architecture meets the
+  Architecture platforms meet the
   Popek-and-Goldberg virtualization requirements for traditional trap-and-emulate
   style virtualization, the performance overhead of virtualization remains high.
   For example, workloads exhibiting a large amount of kernel activity typically
   show 3-5x slowdowns over bare-metal.
 
   Recent additions to the Linux kernel contain guest and host side paravirtual
-  extensions for Power Architecture. While these extensions improve performance
+  extensions for Power Architecture platforms. While these extensions improve performance
   significantly, they
-  are guest-intrusive, non-portable and cover only a subset of all possible
+  are guest-intrusive, not  easily portable and cover only a subset of all possible
   virtualization optimizations.
 
   We present a set of host-side optimizations that achieve comparable
@@ -47,7 +47,7 @@
   the paravirtual approach, without being guest-specific.
 \end{abstract}
 \section{Introduction}
-Embedded devices based on Power Architecture are dominant for their
+Embedded devices based on Power Architecture technology are dominant for their
 favourable power/performance characteristics. Virtualization on these platforms is
 compelling for several applications including high availability (active/standby
 configuration without additional hardware), in-service upgrade, and many
@@ -69,7 +69,7 @@ For example, a guest Linux boot takes almost 5x longer when run virtualized.
 
 The poor performance of simple trap-and-emulate style virtualization has led to
 the inclusion of paravirtual extensions in the Linux kernel on both
-guest and host sides for Power Architecture\cite{pvpower}. The paravirtual extension in the guest
+guest and host sides for Power Architecture\cite{pvpower} platforms. The paravirtual extension in the guest
 rewrites the guest (binary) kernel
 code at startup time to replace most privileged instructions with
 hypervisor-aware unprivileged counterparts ({\em hypercalls}).
@@ -121,7 +121,7 @@ could potentially jump to the middle of our translated code.
 %word-aligned nature of Power Architecture instructions to achieve correctness.
 To ensure correctness, we replace a privileged guest instruction
 by at most one translated instruction in the guest's address space. Because instructions
-are fixed length and word aligned on Power Architecture, this ensures that
+are fixed length and word aligned on Power Architecture platforms, this ensures that
 there can never be a branch to the middle of our translated
 code. Any branch could only reach either the beginning or the end of our
 replacement instruction.
@@ -143,7 +143,7 @@ modified code. We call this mechanism {\em read/write tracing}.
 
 Finally, read/write tracing can cause a large number of
 page faults, especially due to false sharing. The problem is
-exacerbated on embedded Power Architecture platform, where OS typically uses
+exacerbated on embedded Power Architecture platforms, where OS typically uses
 huge pages to reduce TLB pressure. We found that such page faults can
 significantly reduce performance.
 We implement two important optimizations to address this problem, namely
@@ -516,7 +516,7 @@ Much of this overhead is due to false sharing. For example, a large number of pa
 faults occur because guest kernel data often resides on the same page as
 guest kernel code. The problem becomes worse with increasing page size. Linux
 on embedded
-Power Architecture uses huge pages for kernel code/data to minimize
+Power Architecture platforms uses huge pages for kernel code/data to minimize
 TLB pressure, causing our tracing mechanism to result in a huge number of page
 faults.
 
@@ -915,7 +915,7 @@ translation is much harder (or perhaps impossible) to implement correctly
 on x86.
 
 We also rely on the ability to read/write trace guest pages by marking them
-{\tt execute-only}. This is possible on embedded Power Architecture due to the
+{\tt execute-only}. This is possible on embedded Power Architecture processors due to the
 availability of separate
 {\tt read-write-execute} page protection bits.
 In contrast, the x86 architecture provides only {\tt read-only} and
