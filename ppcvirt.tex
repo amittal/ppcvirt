@@ -35,10 +35,12 @@
   performance
   to the aforementioned paravirtual extensions, yet being
   guest-neutral. Our optimizations are based on adaptive binary translation.
-  Unlike the paravirtual approach which requires extensive
-  guest modifications, the only
+  The only
   guest modification required by us is to include a guest-side virtual device driver
   to create a shared address space between the guest and the host.
+  Unlike the paravirtual approach,
+  our solution can optimize dynamically generated guest code, and gracefully
+  handle self-referential and self-modifying code in the guest.
   We implement our ideas in a prototype based on Qemu/KVM.
   After our modifications, KVM can boot a Linux guest around 2.5x faster. Our solution
   provides equivalent performance to
@@ -53,7 +55,7 @@ more\cite{embedded_virtualization, KVM_on_embedded_Power}. While newer Power
 Architecture platforms
 have explicit support for efficient virtualization\cite{freescale_embedded_hyperv, hwassists_hyperv}, a majority of
 prevalent embedded devices run on older (and cheaper) Power Architecture platforms that use
-traditional trap-and-emulate style virtualization\cite{popekgoldberg}. Hence, efficient
+traditional trap-and-emulate style virtualization\cite{popekgoldberg}. Efficient
 virtualization is highly desirable on these platforms.
 
 The current virtualization approach on Power Architecture platforms uses traditional
@@ -80,16 +82,13 @@ unmodified KVM.
 
 The paravirtual approach has shortcomings. Firstly, extensive guest
 modifications are required, which makes the optimizations highly Linux specific.
-Secondly, all guest
-privileged instructions are rewritten only at kernel startup time. Hence,
-optimizations are
-not possible for privileged code running as loadable kernel modules. The
-current paravirtual
-approach on Linux also fails in the presence of self-referential, self-modifying
-and dynamically generated code. The Linux paravirtual extensions carefully
-avoid such pitfalls by ensuring that the kernel never uses self-referential
-or self-modifying code after it has been rewritten. However, such constraints are
-ungraceful, and hard to maintain over time.
+Secondly, this approach
+cannot optimize dynamically generated/loaded code (e.g., loadable modules) because
+all translation is done at kernel startup time.
+The paravirtual approach also
+fails in the presence of self-referential and self-modifying code in guest.
+The Linux guest paravirtual extensions rely on such code not being present in the
+kernel. These constraints are ungraceful, and hard to maintain over time.
 
 We propose a host-side adaptive binary translation mechanism to optimize guest
 privileged instructions at runtime. Our approach is more general and
@@ -731,72 +730,83 @@ Optimization 2 adaptively resizes the shadow TLB entries to reduce
 the number of tracing-induced page faults and results in
 performance improvements over unmodified KVM. The second column ({\tt Adapt-PR})
 in Table~\ref{tab:detailed_results} shows the performance of KVM with
-Optimizations 1~and~2.
+Optimizations~1~and~2.
 Different workloads show different improvements. The improvement primarily depends
-on a three-way tradeoff between the number of VM-exits, the number of
+on a three-way tradeoff between the number of VM exits due to privileged
+instructions, the number of
 tracing page faults, and the number of page faults due to increased TLB pressure.
 In our experience, this delicate three-way tradeoff requires careful
 performance tuning.
-Table~\ref{tab:vm_exit_stats} shows the number of VM-exits and page faults due
+Table~\ref{tab:vm_exit_stats} shows the number of VM exits and page faults due
 to all these three reasons for each workload, before and after our optimizations.
-XXX Discuss the changes in the number
-of VM exits and page faults for different workloads.
-There is a drastic decrease in the number of VM-exits for all the workloads. 
-As expected, we also witness increase in tracing page faults which are generated 
-by data accesses to traced pages.
- This increase in number of tracing page faults is accompanied by increased TLB pressure
- due to TLB splitting during adaptive page resizing for tracing purpose.
- Overall, the performance gained by reduction in number of VM-exits is more than the corresponding increase in number of tracing page faults and page faults due to increased TLB pressure.
-  For all the workloads, this performance gain ranges from 1.2x to 6x (Table \ref{tab:detailed_results})
-  Further, relative share of VM-exits, tracing page faults and TLB pressure in total
-   exits experienced by the specific workload will determine the overall performance gain.
 
-   
-%For many workloads, the increase in tracing-induced page faults leads
-%to significant (around 10\% for Linux guest boot) performance overhead.
+We first discuss the {\tt lmbench} microbenchmarks. The running time
+of all microbenchmarks improves with Optimizations~1~and~2. The average improvement
+is XXX\%, with the maximum improvement of 6x in stat. The improvement in
+a benchmark primarily depends on the reduction in the number of privileged exits.
+Different microbenchmarks show different reductions.
 
-Optimization 3 further reduces the number of tracing page faults by
-making copies of frequently read data residing in traced pages. The column 3 in
-Table~\ref{tab:vm_exit_stats} confirms this reduction on almost all workloads.
-XXX Discuss some workloads. 
-For example, in linux boot, most of the tracing page faults arise from the data read 
-accesses. With this optimization, we are able to copy that frequently accessed data from
- a traced page to shared page and trace all these data accesses and patch them to reflect
- the new address.
-For linux boot, we also observe that most of these accesses originate from small number of instructions. 
+We next discuss the improvement on macrobenchmarks using Optimizations~1~and~2.
+We observe an performance improvement of XXX\% on the macrobenchmarks, with the
+maximum improvement seen in Linux boot, which also shows the maximum reduction
+(XXX\%) in exits due to privileged instructions.
 
-Overall,
-Optimization 3 results in a 169\% average performance
-improvements on our macrobenchmarks.
+For both microbenchmarks and macrobenchmarks, we notice an increase in the
+number of TLB misses and access violations (due to tracing-induced page faults)
+on average. The net effect however remains positive. Optimization~3 further
+reduces the access violations. As we will see later, Optimization~3 also helps
+in reducing TLB misses.
 
+Optimization~3 further reduces the number of tracing-induced page faults
+by mirroring the data residing on a traced page and patching the corresponding
+access instruction to access the data from the mirrored location in future.
+The reduction is observed in all our benchmarks, except {\tt stat}, {\tt fstat},
+and {\tt open/close}. In these three cases, we notice that
+almost all tracing-induced page faults are eliminated by Optimization~2 already.
+For these benchmarks, Optimization~2 ensures that the accessed data and the
+patched code are already on separate pages. The average reduction in the number
+of access-violation page faults (which are mostly due to tracing-induced
+page faults) is XXX\%.
 
+Optimization~3 also reduces the number of TLB misses on many of our benchmarks.
+We find that this happens due to an interesting indirect effect.
+Without Optimization~3, certain guest code pages are adaptively broken into smaller pages
+and privileged-instruction patches on some of these smaller pages are removed to reduce
+tracing-induced page faults. With Optimization~3, the number of tracing-induced
+page faults decreases. This allows Optimization~2 to not have to kick in, allowing
+pages to remain unbroken and privileged-instructions to remain patched.
+This reduces both TLB misses and number of privileged instruction exits.
+We observe this effect in almost all our benchmarks. We notice up to
+XXX\% decrease in the number of TLB misses (for {\tt find} benchmark),
+and up to XXX\% decrease in the number of privileged-instruction
+exits (for Linux boot benchmark).
 
-We next measure the overhead of our adaptive page resizing algorithm. To
-measure overhead, we statically configured the shadow TLB to the best
-possible configuration (number of kernel TLB entries, size of each TLB
-entry, etc.). We found experimentally that for a Linux guest with 5MB code
-section, the best configuration is to have a 5 distinct pages, one of size
-(XXX the guest tlb is of 256 MB, so we need 13 enteries 
-1 of 4 MB, four of size 1 MB each, 2 of 4 MB each, 3 of 16 MB each, 3 of 64 MB; out of 
-these 13 enteries only first 2 enteries are marked as traced to cover kernel text
-section)
-4MB ({\tt 0xc0000000-0xc03fffff}), and
-four of size 1MB each (covering {\tt 0xc0400000-0xc07fffff}). We compared the
-performance of
-our statically configured TLB configuration with that of our adaptive resizing
-algorithm.
-Table~\ref{tab:adaptive_tlb_resizing} summarizes our results for the macrobenchmarks.
-We observe that our resizing algorithm performs within 1-2\% of the optimal.
-(XXX for some case, it performs badly and is within 30\%, but for some cases it outperforms.)
-Our algorithm also settles on the same optimal configuration; the overhead is
-(XXX algo. will try to remain in optimal configuration for most of the time 
-but will further breakdown or diverge if it finds a burst of DSI exits to reduce this
-and will try to merge as soon as DSI exits vanish. This also explains for the poor 
-performance of this compared to static tlb for find workload. Since find workload runs
-for a very short time, it is not able to merge the tlb enteries back and reduce tlb pressure.)
- 
-primarily due to the few extra page faults in the beginning to reach this configuration.
-
+We next measure the overhead and effectiveness
+of our adaptive page resizing algorithm. We statically configured the
+shadow TLB to the best possible configuration for Linux boot benchmark.
+In this configuration, we loaded the shadow TLB with 13 entries:
+one entry of size 4MB ({\tt 0xc0000000-0xc03fffff}), four entries
+of size 1MB each (covering {\tt 0xc0400000-0xc07fffff}), two entries
+of size 4MB each (covering {\tt 0xc0800000-0xc0ffffff}),
+three entries of size 16MB each (covering {\tt 0xc1000000-0xc3ffffff}),
+and three entries of size 64MB each (covering {\tt 0xc4000000-0xcfffffff}).
+Of these 13 entries, the first two entries are marked
+execute-only (kernel code is nearly 5MB long) and the
+rest remain unmodified.
+We compared the performance of this configuration with our adaptive page
+resizing algorithm.
+Table~\ref{tab:adaptive_tlb_resizing} summarizes our results.
+For Linux boot benchmark, we observe that our resizing algorithm performs
+within 1-2\% of the optimal. For other benchmarks, the static configuration
+is not necessarily optimal, and we see that our
+adaptive page resizing algorithm often significantly outperforms it.
+The only exception is the {\tt find} benchmark, where we find that
+our adaptive algorithm first breaks the guest into a large number
+of smaller pages, and then does not get enough time to merge them back. This
+results in a larger number of overall TLB misses (as also shown in
+Table~\ref{tab:adaptive_tlb_resizing_exits}). The microbenchmarks
+are also short-lived, but they have a much shorter memory footprint (as compared
+to {\tt find}) and hence do not show a large increase in TLB misses.
 \begin{table*}
 \centering
       \begin{tabular}{|l| r r |} \hline
@@ -819,7 +829,7 @@ exec	&	8.384	&	8.849\\
 sh	&	17.615	&	21.813\\
  \hline
       \end{tabular}
-\label{tab:detailed_results}
+\label{tab:adaptive_tlb_resizing}
 \caption{Measuring the overhead and performance of adaptive page resizing ({\tt Adapt-PR}) algorithm, in comparison to
 a statically configured TLB ({\tt Static-TLB}). The static TLB configuration was setup such that it provides the best performance for the Linux boot benchmark.}
 \end{table*} 
@@ -847,8 +857,6 @@ sh	&&	1179	&	15699	&	14706	&&	1161	&	34827	&	442	\\	\hline
 \label{tab:adaptive_tlb_resizing}
 \caption{Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}.}
 \end{table*} 
-
-
 
 \section{Discussion}
 \label{sec:discussion}
@@ -883,6 +891,10 @@ availability of separate
 In contrast, the x86 architecture provides only {\tt read-only} and
 {\tt no-execute} (NX) bits, which are less powerful, and insufficient
 to implement {\tt execute-only} privileges at page granularity.
+%VMware's
+%binary translator traces only memory writes (and not reads) to pages containing
+%shadowed guest data structures (e.g., guest's page tables). For this reason,
+%our adaptive data mirroring optimization is irrelevant in this setting.
 
 Subtle
 differences in architectures greatly impact VMM design. We believe that our
