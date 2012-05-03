@@ -278,13 +278,13 @@ improvements.
 \centering
 \caption{Performance comparison}
       \begin{tabular}{|l| l|p{5cm} | r r r r|} \hline
-	        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& KVM \verb, , & KVM-PV \verb, ,& KVM-BT \\ \hline
+        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& {\tt KVM} \verb, , & {\tt KVM-PV} \verb, ,& {\tt KVM-BT} \\ \hline
 
      &&& \multicolumn{4}{c|}{ Running Time in $sec$}\\\cline {4-7}  
       1&  Linux Boot& linux boot & 6.5	&	30.03	&	11.79	&	12.24 \\ \hline
       2& Echo Spawn	& Spawning a large number of echo processes&1.4	&	21.34	&	6.5	&	7.26\\\hline
       3& Find	& find / -name temp & 0.39	&	1.89	&	0.67	&	0.71 \\ \hline
-	   \multicolumn{3}{|c}{ lmbench microbenchmarks }& \multicolumn{4}{c|}{Latency in $msec$}\\  \hline
+	   \multicolumn{3}{|c|}{ lmbench microbenchmarks }& \multicolumn{4}{c|}{Latency in $msec$}\\  \hline
 
 4	&	syscall	&	 measures time to write one word to /dev/null	&	0.000	&	0.020	&	0.003	&	0.003	\\	\hline
 5	&	stat	&	 measures the time to invoke the stat system call	&	0.003	&	0.033	&	0.006	&	0.007	\\	\hline
@@ -327,34 +327,6 @@ improvements.
 %     \end{tabular}
 %\label{tab:diff_approaches}
 %\end{table}
-
-\begin{table*}
-\centering
-\caption{Performance comparison: Refer Table \ref{tab:diff_approaches}}
-      \begin{tabular}{|l| r r r r |} \hline
-	         Benchmark\verb, ,& KVM \verb, , & Static-TLB \verb, ,& Adapt-PR \verb, , & Adapt-DM  \\ \hline
-
-     & \multicolumn{4}{c|}{ Running Time in $sec$}\\ \cline {2-5}  
-Linux boot	&	30.03	&	13.10	&	13.29	&	12.24	\\
-Echo Spawn	&	21.34	&	8.25	&	7.93	&	7.26	\\
-Find	&	1.89	&	0.92	&	1.15	&	0.71	\\
-\cline{2-5}
-	   
-     & \multicolumn{4}{c|}{Latency in $msec$}\\  \cline{2-5}
-syscall	&	0.020	&	0.008	&	0.010	&	0.003	\\
-stat	&	0.033	&	0.012	&	0.006	&	0.007	\\
-fstat	&	0.021	&	0.009	&	0.004	&	0.004	\\
-open/close:	&	0.067	&	0.024	&	0.031	&	0.014	\\
-sig hndl	&	0.024	&	0.009	&	0.004	&	0.004	\\
-pipe 	&	0.164	&	0.054	&	0.135	&	0.034	\\
-fork	&	6.641	&	2.240	&	2.823	&	2.061	\\
-exec	&	20.543	&	8.384	&	8.849	&	7.533	\\
-sh	&	45.164	&	17.615	&	21.813	&	16.327	\\
-
- \hline
-      \end{tabular}
-\label{tab:detailed_results}
-\end{table*} 
 
 \section{In-place Binary Translation}
 \label{sec:bintrans}
@@ -694,13 +666,39 @@ in performance improvements. Most guests however use large pages to reduce
 TLB pressure. Tracing large pages causes a page fault on each kernel data access.
 This leads to unacceptably low performance. For example, a Linux guest boot livelocks
 on such a system.
+\begin{table*}
+\centering
+\caption{Performance comparison of Different Optimizations}
+      \begin{tabular}{|l| r r r |} \hline
+        Benchmark\verb, ,& {\tt KVM} \verb, , & {\tt Adapt-PR} \verb, , & {\tt Adapt-DM}  \\ \hline
+     & \multicolumn{3}{c|}{ Running Time in $sec$}\\ \cline {2-4}  
+Linux boot	&	30.03	&	13.29	&	12.24	\\
+Echo Spawn	&	21.34	&	7.93	&	7.26	\\
+Find	&	1.89	&	1.15	&	0.71	\\
+\cline{2-4}
+	   
+     & \multicolumn{3}{c|}{Latency in $msec$}\\  \cline{2-4}
+syscall	&	0.020	&	0.010	&	0.003	\\
+stat	&	0.033	&	0.006	&	0.007	\\
+fstat	&	0.021	&	0.004	&	0.004	\\
+open/close:	&	0.067	&	0.031	&	0.014	\\
+sig hndl	&	0.024	&	0.004	&	0.004	\\
+pipe 	&	0.164	&	0.135	&	0.034	\\
+fork	&	6.641	&	2.823	&	2.061	\\
+exec	&	20.543	&	8.849	&	7.533	\\
+sh	&	45.164	&	21.813	&	16.327	\\
+ \hline
+      \end{tabular}
+\label{tab:detailed_results}
+\end{table*} 
+
 \begin{center}
 \begin{table*}
 \centering
 \caption{Sources of VM Exits}
 \begin{tabular}{
   p{1.0cm}@{}|@{ }c@{ }|@{}p{1.3cm}|@{}p{1.0cm}|@{}p{1.0cm}@{}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}@{}} \hline
-	         &  & \multicolumn{3}{c|} {KVM}& & \multicolumn{3}{c|} {Adapt-PR} & & \multicolumn{3}{c|}{Adapt-DM} & & \multicolumn{3}{c} {KVM-PV} \\ \hline
+	         &  & \multicolumn{3}{c|}{\tt KVM}& & \multicolumn{3}{c|}{\tt Adapt-PR} & & \multicolumn{3}{c|}{\tt Adapt-DM} & & \multicolumn{3}{c}{\tt KVM-PV} \\ \hline
 
            &&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol} &&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol.}&&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol}&&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol} \\ \hline  
 Boot	&&	12085062	&	458339	&	13721	&&	47500	&	348289	&	456107	&&	43123	&	327477	&	18036	&&	42280	&	291047	&	13697	\\	\hline
@@ -723,7 +721,7 @@ sh	&&	295751	&	12952	&	441	&&	1161	&	34827	&	442	&&	1151	&	15746	&	439	&&	1134	&
 
 Optimization 2 adaptively resizes the shadow TLB entries to reduce
 the number of tracing-induced page faults and results in
-performance improvements over unmodified KVM. The column 3
+performance improvements over unmodified KVM. The second column ({\tt Adapt-PR})
 in Table~\ref{tab:detailed_results} shows the performance of KVM with
 Optimizations 1~and~2.
 Different workloads show different improvements. The improvement primarily depends
@@ -790,6 +788,34 @@ performance of this compared to static tlb for find workload. Since find workloa
 for a very short time, it is not able to merge the tlb enteries back and reduce tlb pressure.)
  
 primarily due to the few extra page faults in the beginning to reach this configuration.
+
+\begin{table*}
+\centering
+\caption{Performance of Adaptive Page Resizing Algorithm}
+      \begin{tabular}{|l| r r |} \hline
+        Benchmark\verb, ,& {\tt Static-TLB} \verb, ,& {\tt Adapt-PR} \verb, , \\ \hline
+
+     & \multicolumn{2}{c|}{Running Time in $sec$}\\ \cline {2-3}
+Linux boot	&	13.10	&	13.29\\
+Echo Spawn	&	8.25	&	7.93\\
+Find	&	0.92	&	1.15\\
+\cline{2-3}
+     & \multicolumn{2}{c|}{Latency in $msec$}\\  \cline{2-3}
+syscall	&	0.008	&	0.010\\
+stat	 &	0.012	&	0.006\\
+fstat	&	0.009	&	0.004\\
+open/close:	&	0.024	&	0.031\\
+sig hndl	&	0.009	&	0.004\\
+pipe 	&	0.054	&	0.135\\
+fork	&	2.240	&	2.823\\
+exec	&	8.384	&	8.849\\
+sh	&	17.615	&	21.813\\
+ \hline
+      \end{tabular}
+\label{tab:detailed_results}
+\end{table*} 
+
+
 
 \begin{table*}
 \centering
