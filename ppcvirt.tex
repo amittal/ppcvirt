@@ -938,7 +938,8 @@ with only host-side optimizations. Unlike the paravirtual approach, we can optim
 dynamically generated/loaded code and ensure correct behaviour in presence of
 self-referential and self-modifying guest code.
 We also do not require a trusted guest. The host-guest shared spaces
-are guest-specific and an untrusted guest can at most crash itself.
+are guest-specific and do not grant a guest any more privileges than it
+already has. An untrusted guest can at most crash itself.
 
 We present our experiments and results on a uniprocessor guest but our
 ideas are equally relevant to a multiprocessor guest. For a multiprocessor
