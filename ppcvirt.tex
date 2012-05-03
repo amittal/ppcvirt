@@ -87,7 +87,10 @@ Secondly, this approach
 cannot optimize dynamically generated/loaded code (e.g., loadable modules) because
 all translation is done at kernel startup time.
 The paravirtual approach also
-fails in the presence of self-referential and self-modifying code in guest.
+fails in presence of self-referential and
+self-modifying code in guest, as binary rewriting is done only
+once at startup time, and other parts of guest kernel may be unaware
+of this rewriting operation.
 The Linux guest paravirtual extensions rely on such code not being present in the
 kernel. These constraints are ungraceful, and hard to maintain.
 
@@ -822,7 +825,8 @@ Of these 13 entries, the first two entries are marked
 execute-only (kernel code is nearly 5MB long) and the
 rest remain unmodified.
 We compared the performance of this configuration with our adaptive page
-resizing algorithm.
+resizing algorithm. We disabled Optimization~3 ({\tt Adapt-DM}) for this
+experiment.
 Table~\ref{tab:adaptive_tlb_resizing} summarizes our results.
 For Linux boot benchmark, we observe that our resizing algorithm performs
 within 1-2\% of the optimal. For other benchmarks, the static configuration
@@ -864,7 +868,7 @@ sh	&	17.615	&	21.813\\
       \end{tabular}
 \label{tab:adaptive_tlb_resizing}
 \caption{Measuring the overhead and performance of adaptive page resizing ({\tt Adapt-PR}) algorithm, in comparison to
-a statically configured TLB ({\tt Static-TLB}). The static TLB configuration was setup such that it provides the best performance for the Linux boot benchmark.}
+a statically configured TLB ({\tt Static-TLB}). The static TLB configuration was setup such that it provides the best performance for the Linux boot benchmark. {\tt Adapt-DM} optimization is disabled for this experiment.}
 \end{table*} 
 
 \begin{table*}
@@ -887,7 +891,7 @@ exec	&&	638	&	7969	&	7209	&&	640	&	18119	&	241	\\	\hline
 sh	&&	1179	&	15699	&	14706	&&	1161	&	34827	&	442	\\	\hline
       \end{tabular}
 \label{tab:adaptive_tlb_resizing_exits}
-\caption{Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}.}
+\caption{Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}. {\tt Adapt-DM} optimization is disabled for this experiment.}
 \end{table*} 
 
 \section{Discussion}
