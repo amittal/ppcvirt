@@ -88,20 +88,18 @@ all translation is done at kernel startup time.
 The paravirtual approach also
 fails in the presence of self-referential and self-modifying code in guest.
 The Linux guest paravirtual extensions rely on such code not being present in the
-kernel. These constraints are ungraceful, and hard to maintain over time.
+kernel. These constraints are ungraceful, and hard to maintain.
 
 We propose a host-side adaptive binary translation mechanism to optimize guest
-privileged instructions at runtime. Our approach is more general and
-makes no assumptions about guest OS. We require minimal guest
+privileged instructions at runtime. Our approach is more general than
+the paravirtualization approach; we can optimize dynamically
+generated/loaded code, and can gracefully handle
+self-referential and self-modifying
+code in the guest. We require minimal guest
 modifications (in the form of a device driver to setup shared address spaces)
 and achieve
-comparable performance to the paravirtual approach. Because we translate
-guest code at runtime (and not at kernel startup time, as done in the paravirtual
-approach), we
-can optimize code in both the main kernel and the loadable modules. Our approach also
-does not assume anything about the guest, and ports seamlessly to different
-guests or different versions of the same guest.
-The last column in Table~\ref{tab:kvm_performance} summarizes the performance results of
+comparable performance to the paravirtual approach.
+The second-last column in Table~\ref{tab:kvm_performance} summarizes the performance results of
 our host-side binary translation approach.
 
 Our host-side virtualization optimizations are based on adaptive binary
@@ -137,8 +135,8 @@ cache is allocated in host's address space. We provide a mechanism for the guest
 to directly access the translation cache in host's address
 space (details in Section~\ref{sec:bintrans}).
 
-The second pitfall with in-place guest modification is due to
-self-referential and self-modifying code inside the guest. We maintain correctness by 
+The second challenge with in-place guest modification is dealing with
+self-referential and self-modifying guest code. We maintain correctness by 
 marking the pages containing the modified instructions {\em execute-only}. This
 causes the hardware to trap into the VMM on any guest read/write access to the
 modified code. We call this mechanism {\em read/write tracing}.
@@ -166,10 +164,9 @@ finally Sections~\ref{sec:discussion}-\ref{sec:conclusion} conclude.
 
 \section{Performance Characterization of KVM on Power Architecture Platforms}
 \label{sec:performance_char}
-We perform our experiments on Linux/KVM running on an
-embedded Power Architecture processor from Freescale used in network
-routing.
-The virtualization overheads
+We perform our experiments on Linux/KVM running on Freescale P2020
+embedded Power Architecture platform.
+On our test platform, the virtualization overheads
 of trap-and-emulate style virtualization can be up to 15x for compute-intensive
 workloads executing a large number of privileged
 instructions (Table~\ref{tab:kvm_performance}). The primary source of
@@ -330,12 +327,16 @@ the benchmarks, our test system, and the various KVM variants is discussed in Se
 
 \section{In-place Binary Translation}
 \label{sec:bintrans}
+We monitor PCs causing a large number of VM exits and binary translate them to
+avoid these exits.
 We translate guest instructions in-place. These translations could potentially
 require code fragments involving multiple instructions. To ensure correctness, we
 must place these code fragments in {\em reserved} space (i.e., not accessed by
 guest for other purposes). We require the guest to explicitly reserve this space
-and inform the host through a hypercall. We first discuss the setup of this shared
-address space between the guest and host.
+and inform the host through a hypercall. The first step of our
+binary translation solution is to setup a shared address space between
+the guest and the host and we discuss this in the following
+subsection.
 \subsection{Shared Guest-Host Address Space}
 \label{sec:sharedspace}
 The guest reserves some pages in it's address space to store the
@@ -353,9 +354,10 @@ and hypercall as a virtual guest device driver (similar to the ``tools'' mechani
 used in many virtualization solutions). We envisage mechanisms to setup
 such shared address spaces using well-known standards for device
 discovery (e.g., ePAPR\cite{ePAPR}) in future.
-We require 75 SLOC changes in a Linux guest to implement this mechanism. This is
-significantly less than the 1100 SLOC required by the Linux paravirtual
-extensions.
+We require 75 SLOC changes in a Linux guest to implement this mechanism.
+%This is
+%significantly less than the 1100 SLOC required by the Linux paravirtual
+%extensions.
 
 In our current implementation, two distinct address ranges are reserved by the
 guest for our BT optimizations.
@@ -373,8 +375,8 @@ the lower 32KB ({\tt 0x00000000-0x00007fff}) or higher
 32KB ({\tt 0xffff8000-0xffffffff}) of the virtual address space. Because the lower
 addresses are reserved for user applications on Linux, we use the higher addresses.
 
-The execute-only space (32KB) also has placement
-constraints. The execute-only space must be reachable
+The second shared address range to store the translation cache, also has placement
+constraints. This execute-only space must be reachable
 by a direct branch instruction from the guest code. A direct branch instruction
 on Power Architecture specifies a 26-bit
 word-aligned address. The branch target addressing is either PC-relative
@@ -401,14 +403,17 @@ within 32MB of the translation cache can still be optimized.
 Some privileged instructions can
 be emulated by single-instruction translations. For example, {\tt mfmsr} is translated
 to a {\tt load} instruction to the address of the emulated {\tt msr}
-register in the shared read/write page. The opcodes which can be
+register in the shared read/write page. Other opcodes which can be
 translated to single instructions are {\tt mfmsr}, {\tt mfspr} and {\tt mtspr}.
+These opcodes requiring single-instruction translations cause the bulk of
+privileged exits in common workloads (refer Figure~\ref{fig:opcode_exit_fraction}).
+We call the privileged instruction
+that was patched, the {\em patch-site}. 
 
 Other privileged opcodes require translation to multiple instructions.
 For such opcodes, we store the emulation code in the translation cache, and
 patch the original instruction with a {\tt branch} instruction to jump to it's
-emulation code. We call the privileged instruction
-that was patched, the {\em patch-site}. The emulation code in the
+emulation code. The emulation code in the
 translation cache is terminated
 with another branch {\em back} to the instruction following the patch-site.
 (see Figure~\ref{fig:txcache}). Because each patch-site requires a different
@@ -454,7 +459,7 @@ be done safely only if the surrounding instructions are not control-flow instruc
 
 This {\tt bl}-based solution works correctly for emulation of the privileged opcode.
 However, if the guest ever jumps to one of the surrounding instructions (which we
-replaced), the guest will behave incorrectly.
+have replaced), the guest will behave incorrectly.
 Because it is practically impossible to predict all possible branch targets at
 translation time (due to presence of indirect branches), we discarded this potential
 solution.
@@ -479,7 +484,7 @@ execution of an instruction on this page to proceed uninterrupted,
 but any read or write access causes a page fault (and a VM exit).
 On a page fault, the hypervisor
 emulates the faulting instruction in software. We call this
-method memory read/write tracing (similar to VMware's memory tracing
+method memory read/write tracing (similar to VMware's memory write tracing
 on x86\cite{adams:asplos06}).
 
 We implement software emulations of memory instructions in KVM. There are 36
@@ -487,12 +492,12 @@ different memory opcodes on Power Architecture that need to be emulated.
 For read instructions, we simply return the original contents of the memory
 address in the appropriate destination
 operand. The original contents may be obtained either from the present guest
-page (if the address does not intersect with a patch-site) or from the hypervisor's
-hash table (if the address matches a patch-site) or both.
+page (if the address does not intersect with a patch-site), or from the hypervisor's
+hash table (if the address matches a patch-site), or both.
 For write instructions, if the memory address (and length) intersects with a patch-site,
 we invalidate and free the corresponding translation cache
 entry and replace the guest page with it's original contents before
-restarting the instruction. If the memory address does not intersect with a
+re-executing the instruction. If the memory address does not intersect with a
 patch-site, we simply perform the equivalent write operation to the guest's memory.
 
 The overhead of read/write tracing depends on the number of accesses by the guest
@@ -516,13 +521,13 @@ We discuss both optimizations in detail below.
 
 \subsection{Adaptive Page Resizing}
 Typical TLB sizes on embedded Power Architecture processors are small.
-For example, the software-managed TLB on our system is a combination of a 16-entry
+For example, the software-managed TLB on our test system is a combination of a 16-entry
 fully-associative cache of variable-sized page table entries
 and a 512-entry 4-way set-associative fixed-size (4KB) page table entries.
 A faster L1 TLB lookup cache is implemented in hardware, and all invalidations
 to maintain consistency with the software-programmed L2 TLB are done automatically.
 The variable-pagesize TLB cache supports 11 different page sizes: 4K, 16K, 64K,
-256K, 1M, 4M, 16M, 64M, 256M, 1G, and 4G. Further a page of size S must be S-byte
+256K, 1M, 4M, 16M, 64M, 256M, 1G, and 4G. Further a page of size $S$ must be $S$-byte
 aligned in physical and virtual address spaces.
 
 The hypervisor traps guest's accesses to the TLB, and creates appropriate
@@ -540,57 +545,62 @@ one shadow TLB entry per guest TLB entry. For example, if the guest uses 4MB pag
 then the shadow TLB will also have corresponding entries for 4MB pages. We
 implement read/write tracing by disabling read/write privileges in the shadow TLB entry.
 
-The guest OS typically uses huge pages for the kernel space to
-reduce TLB pressure. For example, our Linux guest
-uses just one TLB entry of size 256MB to map all its code and data sections.
+Most operating systems use huge pages (using the variable pagesize TLB cache)
+for the kernel to
+reduce TLB pressure. The fixed pagesize TLB cache (containing mappings for 4K pages) is
+made available primarily for user programs. For example, our Linux guest
+uses just one 256MB TLB entry mapping all its kernel code and data.
 Disabling read/write privileges from this TLB entry predictably causes an unacceptably
 large number of page faults (every kernel data access becomes a page fault).
 
 We resize shadow TLB entries to deal with this overhead of page faults due to read/write
-tracing. On patching a privileged guest instruction, we {\em break} the TLB entry
-containing this guest instruction into smaller TLB entries
-(a {\em smaller TLB entry} means a TLB entry for a smaller page). After breaking,
+tracing. After patching a privileged guest instruction, if we notice
+a high number of tracing-induced page faults on that page, we {\em break} the page into
+smaller fragments (and the corresponding TLB entry into smaller TLB entries).
+After breaking,
 we only mark the
 TLB entry containing the patch-site execute-only, and leave the remaining
 unmodified.
-To minimize false sharing, we try and minimize the
-size of the page containing the patch-site. All other pages created by
-breaking the large page, are always larger than this page and are sized
-to minimize
+To minimize false sharing, we keep the
+size of the page containing the patch-site as small as possible, without
+adversely effecting performance. All other pages created by this fragmentation
+are sized
+as large as possible, to minimize
 the overall number of TLB entries. While smaller pages reduce false sharing, they
 also result in increased TLB pressure.
+
+After fragmentation of a large page, if we still notice a high number of page faults
+on the smaller page (which cannot be broken further), we remove all patch-sites
+on that page and re-instate read/write privileges on it. The decision on
+whether to remove the patch-sites on a page, depends on the tradeoff
+between the number of privileged-instruction exits and the number of
+tracing-induced page faults on that page.
 
 Breaking a large page potentially creates
 many smaller pages due to alignment restrictions.
 For example, if the kernel has mapped
-itself using a 256MB page at virtual address (0xc0000000,0xd0000000), and a
+itself using a 256MB page at virtual address (0xc0000000,0xcfffffff), and a
 patch is to be applied at address 0xc0801234, and we have decided to break
 the patch-site page into a 4MB page, the new set of TLB entries will be for
 addresses
-(0xc0000000,0xc0800000);(0xc0800000,0xc0c00000);
-(0xc0c00000,0xc1000000);(0xc1000000,0xc2000000);
-(0xc2000000,0xc4000000);(0xc4000000,0xc8000000);
-(0xc8000000,0xd0000000).
+(0xc0000000,0xc07fffff);(0xc0800000,0xc0bfffff);
+(0xc0c00000,0xc0ffffff);(0xc1000000,0xc1ffffff);
+(0xc2000000,0xc3ffffff);(0xc4000000,0xc7ffffff);
+(0xc8000000,0xcfffffff). Notice that each page of size $S$ is $S$-byte
+aligned.
 
-The size of the smaller page depends on the trade-off between the number
-of tracing page faults (due to false sharing) and the increase in TLB pressure
-due to this page fragmentation.
-%This three-way trade-off between the number of
-%privileged exits, the number of tracing page faults, and TLB thrashing is
-%delicate and requires careful performance tuning.
-We use the following policy to determine the size of the smaller TLB entries. On the
-creation of a new patch-site (due to a VM-exit on a privileged instruction) or a
-large number of page faults due to read/write tracing,
-the size of the page
-containing the corresponding patch-site is halved, subject to
-a minimum page size of 64K.
-The lower bound on page size (64K) limits the maximum number of TLB entries.
-
-To reduce TLB pressure, TLB entries with identical privileges are
-opportunistically merged into
-larger entries. For example, neighbouring TLB entries are merged if the
-removal of a patch-site due to translation cache replacement causes
-them to have identical {\tt rwx} privileges.
+We use the following fragmentation policy. On
+observing a high number of tracing-induced page faults (we use a threshold is XXXX faults in
+XXXms) on a page, that page is broken such that all patch-sites on that page
+belong to 64KB pages. We do not break pages to smaller than 64KB to
+limit TLB pressure. We periodically monitor the number of page faults on
+each fragment. If we find that the number of page faults on a 64KB page is still high,
+we remove all patch-sites and the trace on that page (based on the trade-off
+between privileged-instruction exits and page faults, as discussed above).
+Further, if we find that neighbouring pages have identical {\tt rwx} privileges
+as a result of the above algorithm,
+we opportunistically merge them into a larger page to reduce TLB pressure. We perform
+these periodic checks every XXXms.
 
 Adaptive page resizing significantly reduces the number of page faults. For
 example, a Linux guest boots in 13.29 seconds (as opposed to 30.03 seconds on
@@ -606,7 +616,7 @@ we still observed 10-20\% performance overhead due
 to tracing page faults. We found that a major cause of these page faults were
 read accesses to function dispatch tables and exception handler tables which were
 colocated with kernel code. Often these tables share
-the same 256KB region as the privileged kernel code accessing them, rendering our
+the same 64KB region as the privileged kernel code accessing them, rendering our
 adaptive page resizing algorithm ineffective on these accesses.
 
 We avoid these faults by dynamically monitoring such page faults, adaptively
@@ -615,7 +625,8 @@ translating the instructions accessing this data to access from the new location
 This optimization prevents future page faults on this data.
 
 We perform this optimization if the number of tracing page faults
-due to a certain read-access instruction exceeds a threshold. On noticing
+due to a certain read-access instruction exceeds a threshold (we use a threshold
+of 2000 accesses in a XXXms interval). On noticing
 such faults, we copy the data being accessed
 to a ``data cache''. This data cache is maintained in the read/write shared page
 also storing the guest's emulated registers.
@@ -643,22 +654,25 @@ cycle to converge in 1-2 iterations. Intuitively, kernel
 code which causes privileged
 VM-exits or tracing page faults is likely to be spatially close, and will eventually
 lead to a small set of traced pages. We observed this behaviour in all our experiments
-with Linux guests.
+with Linux guests. Even if the read/write tracing chain becomes long, we rely on
+our adaptive page resizing algorithm to break this chain by removing the
+trace on a page (and all the associated patch-sites)
+if that page experiences a large number of page faults.
 
-Finally, we note that this optimization is only valid for read accesses. For write
-accesses, we must perform the update at the original data location, as other
-instructions (which have not been translated to access the new data location) may
-read from the original location.
+Finally, we note that this optimization is also valid for write accesses. For write
+accesses, we translate the instruction to access the mirrored data location
+directly. Other instructions trying to read/write the original data instruction
+trap and get emulated (or translated, if this happens frequently).
 \section{Experimental Results}
 \label{sec:results}
-We implemented our optimizations in Linux/KVM version 3.0, which
+We implement our optimizations in Linux/KVM version 3.0, which
 has paravirtual extensions for Power. To measure performance of
 {\em unmodified} KVM and KVM with our optimizations,
 we disabled the paravirtual extensions. We perform our experiments
 on Freescale QorIQ P2020 platform, which is optimized for single-threaded
 performance per watt for networking and telecom applications. Our
 system has a 1.2GHz processor with 32KB L1 cache and 512 KB L2 cache.
-We use a RAM-based filesystem for our experiments to eliminate I/O
+We use RAMdisk for our experiments to eliminate I/O
 overheads.
 
 We implement the following optimizations in Linux/KVM:
@@ -740,6 +754,9 @@ In our experience, this delicate three-way tradeoff requires careful
 performance tuning.
 Table~\ref{tab:vm_exit_stats} shows the number of VM exits and page faults due
 to all these three reasons for each workload, before and after our optimizations.
+We also show the number of exits in the paravirtual solution ({\tt KVM-PV}) for
+comparison. In a way, the number of exits occurring in {\tt KVM-PV} is the best
+achievable by any host-side binary translation solution.
 
 We first discuss the {\tt lmbench} microbenchmarks. The running time
 of all microbenchmarks improves with Optimizations~1~and~2. The average improvement
@@ -918,11 +935,13 @@ as previously discussed in Section~\ref{sec:comparison_with_full_bt}.
 The recent extension to the Linux kernel for Power Architecture paravirtualization
 contrasts with our approach. While the paravirtual modifications require extensive
 changes to the Linux kernel, our approach can achieve comparable performance
-with only host-side optimizations.
+with only host-side optimizations. Unlike the paravirtual approach, we can optimize
+dynamically generated/loaded code and ensure correct behaviour in presence of
+self-referential and self-modifying guest code.
 
-We present our experiments and results on a uniprocessor system but our
-ideas are equally relevant to a multiprocessor system. For a multiprocessor
-guest/host, these optimizations must be implemented for each virtual CPU (VCPU).
+We present our experiments and results on a uniprocessor guest but our
+ideas are equally relevant to a multiprocessor guest. For a multiprocessor
+guest, these optimizations must be implemented for each virtual CPU (VCPU).
 To reduce synchronization
 overheads, separate translation and data caches need to be maintained for each VCPU.
 This minimizes synchronization overheads at the potential cost of marginally higher
