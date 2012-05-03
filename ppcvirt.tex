@@ -599,8 +599,8 @@ addresses
 aligned.
 
 We use the following fragmentation policy. On
-observing a high number of tracing-induced page faults (we use a threshold is XXXX faults in
-XXXms) on a page, that page is broken such that all patch-sites on that page
+observing a high number of tracing-induced page faults (we use a threshold of 10000 faults in
+100ms) on a page, that page is broken such that all patch-sites on that page
 belong to 64KB pages. We do not break pages to smaller than 64KB to
 limit TLB pressure. We periodically monitor the number of page faults on
 each fragment. If we find that the number of page faults on a 64KB page is still high,
@@ -609,7 +609,7 @@ between privileged-instruction exits and page faults, as discussed above).
 Further, if we find that neighbouring pages have identical {\tt rwx} privileges
 as a result of the above algorithm,
 we opportunistically merge them into a larger page to reduce TLB pressure. We perform
-these periodic checks every XXXms.
+these periodic checks every 100ms.
 
 Adaptive page resizing significantly reduces the number of page faults. For
 example, a Linux guest boots in 13.29 seconds (as opposed to 30.03 seconds on
@@ -635,7 +635,7 @@ This optimization prevents future page faults on this data.
 
 We perform this optimization if the number of tracing page faults
 due to a certain read-access instruction exceeds a threshold (we use a threshold
-of 2000 accesses in a XXXms interval). On noticing
+of 2000 accesses). On noticing
 such faults, we copy the data being accessed
 to a ``data cache''. This data cache is maintained in the read/write shared page
 also storing the guest's emulated registers.
