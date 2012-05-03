@@ -287,20 +287,21 @@ improvements.
         S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& {\tt KVM} \verb, , & {\tt KVM-PV} \verb, ,& {\tt KVM-BT}& Speedup \\ \hline
 
      &&& \multicolumn{5}{c|}{ Running Time in $sec$}\\\cline {4-8}  
-      1&  Linux Boot& linux boot & 6.5	&	30.03	&	11.79	&	12.24 & 2.5x \\ \hline
-      2& Echo Spawn	& Spawning a large number of echo processes&1.4	&	21.34	&	6.5	&	7.26& 2.9x \\\hline
-      3& Find	& find / -name temp & 0.39	&	1.89	&	0.67	&	0.71 & 2.7x\\ \hline
+      1&  Linux boot& Boots a Linux 3.0 guest & 6.5	&	30.03	&	11.79	&	12.24 & 2.5x \\ \hline
+      2& Echo spawn	& Spawns 1000 echo processes &1.4	&	21.34	&	6.5	&	7.26& 2.9x \\\hline
+      3& Find	& Executes {\tt 'find / -name temp'} & 0.39	&	1.89	&	0.67	&	0.71 & 2.7x\\ \hline
+      4& Lame	& MP3 encoder & 0.44	&	0.57	&	0.51	&	0.51 & 1.1x\\ \hline
 	   \multicolumn{3}{|c|}{ lmbench microbenchmarks }& \multicolumn{5}{c|}{Latency in $msec$}\\  \hline
 
-4	&	syscall	&	 measures time to write one word to /dev/null	&	0.000	&	0.020	&	0.003	&	0.003 & 6.7x	\\	\hline
-5	&	stat	&	 measures the time to invoke the stat system call	&	0.003	&	0.033	&	0.006	&	0.007& 4.7x	\\	\hline
-6	&	fstat	&	time to invoke fstat system call on open file 	&	0.001	&	0.021	&	0.004	&	0.004&5.3x	\\	\hline
-7	&	open/close:	&	 time to open a temporary file for reading and closing it immediately 	&	0.006	&	0.067	&	0.013	&	0.014&4.8x	\\	\hline
-8	&	sig hndl	&	 time to install a signal handler	&	0.001	&	0.024	&	0.004	&	0.004	& 6x\\	\hline
-9	&	pipe 	&	 round trip latency to pass a word from process A to process B and back to A	&	0.014	&	0.164	&	0.032	&	0.034&4.8x	\\	\hline
-10	&	fork	&	 fork and exit 	&	1.084	&	6.641	&	1.640	&	2.061&3.2x	\\	\hline
-11	&	exec	&	 fork, exec and exit	&	3.065	&	20.543	&	6.254	&	7.533&2.7x	\\	\hline
-12	&	sh	&	 fork, exec sh -c and exit	&	6.645	&	45.164	&	13.842	&	16.327&2.8x	\\	\hline
+4	&	syscall	&	 Writes one word to /dev/null	&	0.000	&	0.020	&	0.003	&	0.003 & 6.7x	\\	\hline
+5	&	stat	&	 Invokes the stat system call	&	0.003	&	0.033	&	0.006	&	0.007& 4.7x	\\	\hline
+6	&	fstat	&	Invokes fstat system call on an open file 	&	0.001	&	0.021	&	0.004	&	0.004&5.3x	\\	\hline
+7	&	open/close:	&	Opens a temporary file for reading and closes it immediately 	&	0.006	&	0.067	&	0.013	&	0.014&4.8x	\\	\hline
+8	&	sig hndl	&	Installs a signal handler	&	0.001	&	0.024	&	0.004	&	0.004	& 6x\\	\hline
+9	&	pipe 	&	Passes a word from process A to process B and back to A	and measures round-trip time &	0.014	&	0.164	&	0.032	&	0.034&4.8x	\\	\hline
+10	&	fork	&  Calls {\tt fork} and {\tt exit} 	&	1.084	&	6.641	&	1.640	&	2.061&3.2x	\\	\hline
+11	&	exec	& Calls {\tt fork}, {\tt exec} and {\tt exit} &	3.065	&	20.543	&	6.254	&	7.533&2.7x	\\	\hline
+12	&	sh	& Calls {\tt fork}, {\tt exec sh -c} and {\tt exit}	&	6.645	&	45.164	&	13.842	&	16.327&2.8x	\\	\hline
 
 
 
@@ -686,6 +687,16 @@ performance per watt for networking and telecom applications. Our
 system has a 1.2GHz processor with 32KB L1 cache and 512 KB L2 cache.
 We use RAMdisk for our experiments to eliminate I/O
 overheads.
+
+Our benchmarks are described in Table~\ref{tab:detailed_results}. We use four macrobenchmarks, namely Linux boot, Echo spawn,
+Find and Lame. These benchmarks have also been used in a previous performance study\cite{kvm_ppc_exittimings}. The others are microbenchmarks from the widely-used {\tt lmbench} toolset\cite{lmbench}.
+Linux boot and Echo spawn execute a large number of privileged instructions, while Find executes relatively fewer privileged instructions. Lame has to
+do some I/O and a lot of computation that does not need to exit to the
+hypervisor (thus representing an average compute-intensive workload).
+Most {\tt lmbench} programs repeatedly execute the same function, which usually involves executing a large number
+of privileged operations. The number of privileged instructions executed by each benchmark are reported
+in Table~\ref{tab:vm_exit_stats}. We do not report performance comparisons on purely user-level compute-intensive
+workloads because they exhibit near bare-metal performance for all cases.
 
 We implement the following optimizations in Linux/KVM:
 \begin{enumerate}
