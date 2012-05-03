@@ -758,20 +758,22 @@ in Table~\ref{tab:detailed_results} shows the performance of KVM with
 Optimizations~1~and~2.
 We first discuss the {\tt lmbench} microbenchmarks. The running time
 of all microbenchmarks improves with Optimizations~1~and~2. The average improvement
-is XXX\%, with the maximum improvement of 6x in stat. The improvement in
+is XXX\%, with the maximum improvement of 600\% in stat. The improvement in
 a benchmark primarily depends on the reduction in the number of privileged exits.
-Different microbenchmarks show different reductions.
+Different microbenchmarks execute different number of privileged
+instructions and show different corresponding reductions.
 We next discuss the improvement on macrobenchmarks using Optimizations~1~and~2.
-We observe an performance improvement of XXX\% on the macrobenchmarks, with the
+We observe a performance improvement of XXX\% on the macrobenchmarks, with the
 maximum improvement seen in Linux boot, which also shows the maximum reduction
 (XXX\%) in exits due to privileged instructions.
 For both microbenchmarks and macrobenchmarks, we notice an increase in the
 number of TLB misses and access violations (due to tracing-induced page faults)
-on average. The net effect however remains positive. Optimization~3 further
-reduces these access violations. As we will see later, Optimization~3 also helps
-in reducing TLB misses.
+on average. The net effect however remains positive. Our next
+optimization (Optimization~3) further
+reduces these access violations. We also find that Optimization~3 reduces
+privileged instruction exits and TLB misses.
 
-Optimization~3 further reduces the number of tracing-induced page faults
+Optimization~3 reduces the number of tracing-induced page faults
 by mirroring the data residing on a traced page and patching the corresponding
 access instruction to access the data from the mirrored location in future.
 The reduction is observed in all our benchmarks, except {\tt stat}, {\tt fstat},
@@ -782,7 +784,8 @@ patched code are already on separate pages. The average reduction in the number
 of access-violation page faults (which are mostly due to tracing-induced
 page faults) is XXX\%.
 
-Optimization~3 also reduces the number of TLB misses on many of our benchmarks.
+Optimization~3 also reduces the number of privileged-instruction
+exits and TLB misses on many of our benchmarks.
 We find that this happens due to an interesting indirect effect.
 Without Optimization~3, certain guest code pages are adaptively broken into smaller pages
 and privileged-instruction patches on some of these smaller pages are removed to reduce
@@ -797,7 +800,7 @@ exits (for Linux boot benchmark).
 
 We next measure the overhead and effectiveness
 of our adaptive page resizing algorithm. We statically configured the
-shadow TLB to the best possible configuration for Linux boot benchmark.
+shadow TLB to the best observed configuration for Linux boot benchmark.
 In this configuration, we loaded the shadow TLB with 13 entries:
 one entry of size 4MB ({\tt 0xc0000000-0xc03fffff}), four entries
 of size 1MB each (covering {\tt 0xc0400000-0xc07fffff}), two entries
@@ -814,10 +817,10 @@ For Linux boot benchmark, we observe that our resizing algorithm performs
 within 1-2\% of the optimal. For other benchmarks, the static configuration
 is not necessarily optimal, and we see that our
 adaptive page resizing algorithm often significantly outperforms it.
-The only exception is the {\tt find} benchmark, where we find that
+The only exception is the {\tt find} benchmark, where we notice that
 our adaptive algorithm first breaks the guest into a large number
 of smaller pages, and then does not get enough time to merge them back. This
-results in a larger number of overall TLB misses (as also shown in
+results in a larger number of overall TLB misses (shown in
 Table~\ref{tab:adaptive_tlb_resizing_exits}), and happens primarily due
 to the short-lived nature of the benchmark. Running the benchmark longer shows
 performance comparable to the static configuration. We do not
