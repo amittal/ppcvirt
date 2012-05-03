@@ -336,7 +336,7 @@ and inform the host through a hypercall. The first step of our
 binary translation solution is to setup a shared address space between
 the guest and the host and we discuss this in the following
 subsection.
-\subsection{Shared Guest-Host Address Space}
+\subsection{Shared Host-Guest Address Space}
 \label{sec:sharedspace}
 The guest reserves some pages in it's address space to store the
 binary translator's translation
@@ -937,6 +937,8 @@ changes to the Linux kernel, our approach can achieve comparable performance
 with only host-side optimizations. Unlike the paravirtual approach, we can optimize
 dynamically generated/loaded code and ensure correct behaviour in presence of
 self-referential and self-modifying guest code.
+We also do not require a trusted guest. The host-guest shared spaces
+are guest-specific and an untrusted guest can at most crash itself.
 
 We present our experiments and results on a uniprocessor guest but our
 ideas are equally relevant to a multiprocessor guest. For a multiprocessor
