@@ -355,8 +355,8 @@ and hypercall as a virtual guest device driver (similar to the ``tools'' mechani
 used in many virtualization solutions). We envisage mechanisms to setup
 such shared address spaces using well-known standards for device
 discovery (e.g., ePAPR\cite{ePAPR}) in future.
-We require XXX LOC changes in a Linux guest to implement this mechanism. This is
-significantly less than the XXXX LOC required by the Linux paravirtual
+We require 75 LOC changes in a Linux guest to implement this mechanism. This is
+significantly less than the 1100 LOC required by the Linux paravirtual
 extensions.
 
 In our current implementation, two distinct address ranges are reserved by the
@@ -404,7 +404,7 @@ Some privileged instructions can
 be emulated by single-instruction translations. For example, {\tt mfmsr} is translated
 to a {\tt load} instruction to the address of the emulated {\tt msr}
 register in the shared read/write page. The opcodes which can be
-translated to single instructions are XXX.
+translated to single instructions are {\tt mfmsr}, {\tt mfspr} and {\tt mtspr}.
 
 Other privileged opcodes require translation to multiple instructions.
 For such opcodes, we store the emulation code in the translation cache, and
@@ -484,7 +484,7 @@ emulates the faulting instruction in software. We call this
 method memory read/write tracing (similar to VMware's memory tracing
 on x86\cite{adams:asplos06}).
 
-We implement software emulations of memory instructions in KVM. There are XXX
+We implement software emulations of memory instructions in KVM. There are 36
 different memory opcodes on Power Architecture that need to be emulated.
 For read instructions, we simply return the original contents of the memory
 address in the appropriate destination
@@ -744,8 +744,8 @@ Table~\ref{tab:vm_exit_stats} shows the number of VM-exits and page faults due
 to all these three reasons for each workload, before and after our optimizations.
 XXX Discuss the changes in the number
 of VM exits and page faults for different workloads.
-There is a drastic change in the number of VM-exits for all the workloads. 
-As expected, we witness increase in tracing page faults which are generated 
+There is a drastic decrease in the number of VM-exits for all the workloads. 
+As expected, we also witness increase in tracing page faults which are generated 
 by data accesses to traced pages.
  This increase in number of tracing page faults is accompanied by increased TLB pressure
  due to TLB splitting during adaptive page resizing for tracing purpose.
