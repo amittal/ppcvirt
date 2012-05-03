@@ -195,7 +195,6 @@ improvements.
 
 \begin{table}[!b]
 \centering
-\caption{Sources of VM Exits: Opcodes and Exceptions}
      \begin{tabular}{|l | p{5cm} |} \hline
        Opcode \verb, , & Description \\ \hline
        {\tt mfmsr} & Move from machine state register \\ \hline
@@ -212,28 +211,27 @@ improvements.
        {\tt dsi} & Page fault due to insufficient privilege\\\hline
 
      \end{tabular}
-\label{tab:priv_opcodes}
+\caption{\label{tab:priv_opcodes} Sources of VM Exits: Opcodes and Exceptions}
 \end{table}
 
 \begin{figure}[!htb]
 \centering
 
 \includegraphics[scale=0.5]{exit_count.eps}
-\caption{Sources of VM exits}
 \label{fig:opcode_exit_fraction}
+\caption{Main sources of VM exits}
 \end{figure}
 
 \begin{figure}[!htb]
 \centering
 
 \includegraphics[scale=0.5]{multiple_ins_patching.eps}
-\caption{Multiple instruction patching}
 \label{fig:multiple_insns_patching}
+\caption{Figure showing patching of multiple instructions using {\tt bl} instruction. This approach fails in presence of arbitrary guest jumps.}
 \end{figure}
 
 \begin{table}[!b]
 \centering
-\caption{Sources of VM exits for Linux boot}
      \begin{tabular}{lcc} \hline
        Instruction class  & Exit count & \% of total exits  \\ \hline
        {\tt mfspr} & 4484245 & 33.8  \\
@@ -249,19 +247,19 @@ improvements.
        \hline
      \end{tabular}
 \label{tab:linuxboot_exitcount}
+\caption{Main sources of VM exits and their frequency on guest Linux boot (refer Table~\ref{tab:priv_opcodes} for semantics of these opcodes)}
 \end{table}
 
 \begin{figure}[!htb]
 \centering
 
 \includegraphics[scale=0.5]{pc_count.eps}
-\caption{Exit Profile of Different Guest PCs}
+\caption{Exit Profile of Different Guest PCs for three different macrobenchmarks}
 \label{fig:pc_profile}
 \end{figure}
 
 \begin{table}[!b]
 \centering
-\caption{PCs responsible for VM exits for linux boot}
      \begin{tabular}{lcc} \hline
        Exits count  & PC count & \% of total exits  \\ \hline
        $>$20000 & 93 & 91.9  \\
@@ -273,12 +271,12 @@ improvements.
        \hline
      \end{tabular}
 \label{tab:linuxboot_pcexits}
+\caption{PCs responsible for VM exits on guest Linux boot}
 \end{table}
 
 
 \begin{table*}
 \centering
-\caption{Performance comparison}
       \begin{tabular}{|l| l|p{5cm} | r r r r|} \hline
         S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& {\tt KVM} \verb, , & {\tt KVM-PV} \verb, ,& {\tt KVM-BT} \\ \hline
 
@@ -302,6 +300,8 @@ improvements.
 
         \hline
       \end{tabular}
+\caption{Performance comparison of bare-metal, unmodified KVM, KVM-paravirtual, and our (KVM-BT) approach. The details of
+the benchmarks, our test system, and the various KVM variants is discussed in Section~\ref{sec:results}}
 \label{tab:kvm_performance}
 \end{table*} 
 %\begin{table}[!b]
@@ -653,7 +653,17 @@ instructions (which have not been translated to access the new data location) ma
 read from the original location.
 \section{Experimental Results}
 \label{sec:results}
-In summary, we have implemented the following optimizations in Linux/KVM:
+We implemented our optimizations in Linux/KVM version 3.0, which
+has paravirtual extensions for Power. To measure performance of
+{\em unmodified} KVM and KVM with our optimizations,
+we disabled the paravirtual extensions. We perform our experiments
+on Freescale QorIQ P2020 platform, which is optimized for single-threaded
+performance per watt for networking and telecom applications. Our
+system has a 1.2GHz processor with 32KB L1 cache and 512 KB L2 cache.
+We use a RAM-based filesystem for our experiments to eliminate I/O
+overheads.
+
+We implement the following optimizations in Linux/KVM:
 \begin{enumerate}
   \item In-place Binary Translation and Read/Write Tracing
   \item Adaptive Page Resizing
@@ -668,7 +678,6 @@ This leads to unacceptably low performance. For example, a Linux guest boot live
 on such a system.
 \begin{table*}
 \centering
-\caption{Performance comparison of Different Optimizations}
       \begin{tabular}{|l| r r r |} \hline
         Benchmark\verb, ,& {\tt KVM} \verb, , & {\tt Adapt-PR} \verb, , & {\tt Adapt-DM}  \\ \hline
      & \multicolumn{3}{c|}{ Running Time in $sec$}\\ \cline {2-4}  
@@ -690,12 +699,12 @@ sh	&	45.164	&	21.813	&	16.327	\\
  \hline
       \end{tabular}
 \label{tab:detailed_results}
+\caption{Performance Improvements obtained by Adaptive Page Resizing ({\tt Adapt-PR}) and Adaptive Data Mirroring ({\tt Adapt-DM}) optimizations.}
 \end{table*} 
 
 \begin{center}
 \begin{table*}
 \centering
-\caption{Sources of VM Exits}
 \begin{tabular}{
   p{1.0cm}@{}|@{ }c@{ }|@{}p{1.3cm}|@{}p{1.0cm}|@{}p{1.0cm}@{}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}@{}} \hline
 	         &  & \multicolumn{3}{c|}{\tt KVM}& & \multicolumn{3}{c|}{\tt Adapt-PR} & & \multicolumn{3}{c|}{\tt Adapt-DM} & & \multicolumn{3}{c}{\tt KVM-PV} \\ \hline
@@ -715,6 +724,8 @@ exec	&&	149439	&	6430	&	239	&&	640	&	18119	&	241	&&	624	&	8075	&	238	&&	615	&	65
 sh	&&	295751	&	12952	&	441	&&	1161	&	34827	&	442	&&	1151	&	15746	&	439	&&	1134	&	13215	&	440	\\	\hline
       \end{tabular}
 \label{tab:vm_exit_stats}
+\caption{Frequency of VM exits due to privileged instructions ({\tt Priv. Exits}), TLB misses ({\tt TLB miss}), and access violations ({\tt Acc. Viol}). The
+exits due to access violations are due to read/write accesses to pages which do not have read/write permissions. These exits occur primarily due to read/write tracing.}
 \end{table*} 
 \end{center}
 
@@ -791,7 +802,6 @@ primarily due to the few extra page faults in the beginning to reach this config
 
 \begin{table*}
 \centering
-\caption{Performance of Adaptive Page Resizing Algorithm}
       \begin{tabular}{|l| r r |} \hline
         Benchmark\verb, ,& {\tt Static-TLB} \verb, ,& {\tt Adapt-PR} \verb, , \\ \hline
 
@@ -813,13 +823,13 @@ sh	&	17.615	&	21.813\\
  \hline
       \end{tabular}
 \label{tab:detailed_results}
+\caption{Measuring the overhead and performance of adaptive page resizing ({\tt Adapt-PR}) algorithm, in comparison to
+a statically configured TLB ({\tt Static-TLB}). The static TLB configuration was setup such that it provides the best performance for the Linux boot benchmark.}
 \end{table*} 
-
 
 
 \begin{table*}
 \centering
-\caption{Sources of VM Exits}
 \begin{tabular}{l|@{ }c@{ }|p{1cm}|c|p{1cm}|@{ }c@{ }|p{1cm}|c|p{1cm}} \hline
 	         &&  \multicolumn{3}{c|} {Static TLB Configuration}&& \multicolumn{3}{c} {Adapt-PR} \\ \hline
 
@@ -836,10 +846,9 @@ pipe	&&	39170	&	1335	&	229665	&&	21718	&	261374	&	17807	\\	\hline
 fork	&&	543	&	5825	&	6579	&&	548	&	14987	&	347	\\	\hline
 exec	&&	638	&	7969	&	7209	&&	640	&	18119	&	241	\\	\hline
 sh	&&	1179	&	15699	&	14706	&&	1161	&	34827	&	442	\\	\hline
-
-
       \end{tabular}
 \label{tab:adaptive_tlb_resizing}
+\caption{Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}.}
 \end{table*} 
 
 
