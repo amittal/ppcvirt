@@ -315,18 +315,18 @@ improvements.
 %\label{tab:kvmperformance}
 %\end{table}
 
-\begin{table}[!b]
-\centering
-\caption{Tracing overhead optimizations - Approaches}
-     \begin{tabular}{|l | p{5cm} |} \hline
-       Approach \verb, , & Description \\ \hline
-       Static-TLB & In-place Binary Translation and Read/Write Tracing with static TLB configuration\\ \hline
-       Adapt-DM & Avoiding Read Page Faults by copying data and translating faulting instructions  \\\hline
-	   Adapt-PR & Adaptive Page Resizing  \\\hline
-
-     \end{tabular}
-\label{tab:diff_approaches}
-\end{table}
+%\begin{table}[!b]
+%\centering
+%\caption{Tracing overhead optimizations - Approaches}
+%     \begin{tabular}{|l | p{5cm} |} \hline
+%       Approach \verb, , & Description \\ \hline
+%       Static-TLB & In-place Binary Translation and Read/Write Tracing with static TLB configuration\\ \hline
+%       Adapt-DM & Avoiding Read Page Faults by copying data and translating faulting instructions  \\\hline
+%	   Adapt-PR & Adaptive Page Resizing  \\\hline
+%
+%     \end{tabular}
+%\label{tab:diff_approaches}
+%\end{table}
 
 \begin{table*}
 \centering
@@ -355,56 +355,6 @@ sh	&	45.164	&	17.615	&	21.813	&	16.327	\\
       \end{tabular}
 \label{tab:detailed_results}
 \end{table*} 
-
-\begin{table*}
-\centering
-\caption{Sources of VM Exits}
-      \begin{tabular}{|@{}p{1cm}|@{}p{1.2cm}|p{1cm}|@{}c@{}| p{0.8cm}| p{1cm}|@{}c@{}| p{1cm} | p{1cm}|@{}c@{}| p{1cm} |p{1cm}|@{}c@{} |} \hline
-	         &  \multicolumn{3}{c|} {KVM}& \multicolumn{3}{c|} {Adapt-PR} & \multicolumn{3}{c|} {Adapt-DM} \verb, ,& \multicolumn{3}{c|} {KVM-PV} \\ \hline
-
-     &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI \\ \hline  
-Boot	&	12085062	&	458339	&	13721	&	47500	&	348289	&	456107	&	43123	&	327477	&	18036	&	42280	&	291047	&	13697	\\	\hline
-Echo Spawn	&	9850769	&	417554	&	16999	&	36657	&	488791	&	516483	&	35849	&	503232	&	17999	&	35419	&	432076	&	19008	\\	\hline
-Find	&	788358	&	2106	&	41	&	1114	&	192217	&	18291	&	737	&	2290	&	39	&	719	&	1945	&	41	\\	\hline
-syscall	&	54274	&	932	&	45	&	166	&	1090	&	21597	&	157	&	1090	&	44	&	159	&	941	&	43	\\	\hline
-stat	&	49683	&	946	&	45	&	160	&	3019	&	42	&	155	&	1073	&	43	&	155	&	930	&	43	\\	\hline
-fstat	&	51839	&	945	&	43	&	162	&	2964	&	44	&	158	&	1109	&	44	&	160	&	946	&	45	\\	\hline
-open/ close	&	55420	&	933	&	44	&	185	&	23712	&	43	&	169	&	1080	&	43	&	173	&	938	&	43	\\	\hline
-sig hndl	&	52128	&	945	&	39	&	165	&	1074	&	19478	&	156	&	1078	&	260	&	158	&	946	&	43	\\	\hline
-pipe	&	918788	&	1146	&	52	&	21718	&	261374	&	17807	&	60450	&	1322	&	51	&	62074	&	1172	&	54	\\	\hline
-fork	&	68775	&	2575	&	173	&	548	&	14987	&	347	&	530	&	5712	&	345	&	522	&	4860	&	360	\\	\hline
-exec	&	149439	&	6430	&	239	&	640	&	18119	&	241	&	624	&	8075	&	238	&	615	&	6549	&	240	\\	\hline
-sh	&	295751	&	12952	&	441	&	1161	&	34827	&	442	&	1151	&	15746	&	439	&	1134	&	13215	&	440	\\	\hline
-      \end{tabular}
-\label{tab:vm_exit_stats}
-\end{table*} 
-
-\begin{table*}
-\centering
-\caption{Sources of VM Exits}
-      \begin{tabular}{|l|r|r|r|r|r|r |} \hline
-	         &  \multicolumn{3}{c|} {Static TLB Configuration}& \multicolumn{3}{c|} {Adapt-PR} \\ \hline
-
-     &Priv. Exits&TLB VIRT&DSI &Priv. Exits&TLB VIRT&DSI \\ \hline  
-Boot	&	44163	&	335125	&	455761	&	47500	&	348289	&	456107	\\	\hline
-Echo Spawn	&	36950	&	525249	&	513745	&	36657	&	488791	&	516483	\\	\hline
-Find	&	909	&	2318	&	96931	&	1114	&	192217	&	18291	\\	\hline
-syscall	&	171	&	1117	&	23640	&	166	&	1090	&	21597	\\	\hline
-stat	&	158	&	1100	&	15449	&	160	&	3019	&	42	\\	\hline
-fstat	&	165	&	1117	&	21201	&	162	&	2964	&	44	\\	\hline
-open/close	&	169	&	1102	&	15342	&	185	&	23712	&	43	\\	\hline
-sig hndl	&	162	&	1140	&	19541	&	165	&	1074	&	19478	\\	\hline
-pipe	&	39170	&	1335	&	229665	&	21718	&	261374	&	17807	\\	\hline
-fork	&	543	&	5825	&	6579	&	548	&	14987	&	347	\\	\hline
-exec	&	638	&	7969	&	7209	&	640	&	18119	&	241	\\	\hline
-sh	&	1179	&	15699	&	14706	&	1161	&	34827	&	442	\\	\hline
-
-
-      \end{tabular}
-\label{tab:adaptive_tlb_resizing}
-\end{table*} 
-
-
 
 \section{In-place Binary Translation}
 \label{sec:bintrans}
@@ -744,6 +694,32 @@ in performance improvements. Most guests however use large pages to reduce
 TLB pressure. Tracing large pages causes a page fault on each kernel data access.
 This leads to unacceptably low performance. For example, a Linux guest boot livelocks
 on such a system.
+\begin{center}
+\begin{table*}
+\centering
+\caption{Sources of VM Exits}
+\begin{tabular}{
+  p{1.0cm}@{}|@{ }c@{ }|@{}p{1.3cm}|@{}p{1.0cm}|@{}p{1.0cm}@{}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}|@{ }c@{ }|@{}p{0.8cm}|@{}p{0.9cm}|@{}p{0.9cm}@{}} \hline
+	         &  & \multicolumn{3}{c|} {KVM}& & \multicolumn{3}{c|} {Adapt-PR} & & \multicolumn{3}{c|}{Adapt-DM} & & \multicolumn{3}{c} {KVM-PV} \\ \hline
+
+           &&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol} &&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol.}&&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol}&&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol} \\ \hline  
+Boot	&&	12085062	&	458339	&	13721	&&	47500	&	348289	&	456107	&&	43123	&	327477	&	18036	&&	42280	&	291047	&	13697	\\	\hline
+Echo Spawn	&&	9850769	&	417554	&	16999	&&	36657	&	488791	&	516483	&& 35849	&	503232	&	17999	&&	35419	&	432076	&	19008	\\	\hline
+Find	&& 788358	&	2106	&	41	&&	1114	&	192217	&	18291	&&	737	&	2290	&	39	&&	719	&	1945	&	41	\\	\hline
+syscall	&&	54274	&	932	&	45	&&	166	&	1090	&	21597	&&	157	&	1090	&	44	&&	159	&	941	&	43	\\	\hline
+stat	&&	49683	&	946	&	45	&&	160	&	3019	&	42	&&	155	&	1073	&	43	&&	155	&	930	&	43	\\	\hline
+fstat	&&	51839	&	945	&	43	&&	162	&	2964	&	44	&&	158	&	1109	&	44	&&	160	&	946	&	45	\\	\hline
+open/ close	&&	55420	&	933	&	44	&&	185	&	23712	&	43	&&	169	&	1080	&	43	&&	173	&	938	&	43	\\	\hline
+sig hndl	&&	52128	&	945	&	39	&&	165	&	1074	&	19478	&&	156	&	1078	&	260	&&	158	&	946	&	43	\\	\hline
+pipe	&&	918788	&	1146	&	52	&&	21718	&	261374	&	17807	&&	60450	&	1322	&	51	&&	62074	&	1172	&	54	\\	\hline
+fork	&&	68775	&	2575	&	173	&&	548	&	14987	&	347	&&	530	&	5712	&	345	&&	522	&	4860	&	360	\\	\hline
+exec	&&	149439	&	6430	&	239	&&	640	&	18119	&	241	&&	624	&	8075	&	238	&&	615	&	6549	&	240	\\	\hline
+sh	&&	295751	&	12952	&	441	&&	1161	&	34827	&	442	&&	1151	&	15746	&	439	&&	1134	&	13215	&	440	\\	\hline
+      \end{tabular}
+\label{tab:vm_exit_stats}
+\end{table*} 
+\end{center}
+
 
 Optimization 2 adaptively resizes the shadow TLB entries to reduce
 the number of tracing-induced page faults and results in
@@ -814,6 +790,33 @@ performance of this compared to static tlb for find workload. Since find workloa
 for a very short time, it is not able to merge the tlb enteries back and reduce tlb pressure.)
  
 primarily due to the few extra page faults in the beginning to reach this configuration.
+
+\begin{table*}
+\centering
+\caption{Sources of VM Exits}
+\begin{tabular}{l|@{ }c@{ }|p{1cm}|c|p{1cm}|@{ }c@{ }|p{1cm}|c|p{1cm}} \hline
+	         &&  \multicolumn{3}{c|} {Static TLB Configuration}&& \multicolumn{3}{c} {Adapt-PR} \\ \hline
+
+           &&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol}&&{\tt Priv. Exits}&{\tt TLB miss}&{\tt Acc. Viol}\\ \hline  
+Boot	&&	44163	&	335125	&	455761	&&	47500	&	348289	&	456107	\\	\hline
+Echo Spawn	&&	36950	&	525249	&	513745	&&	36657	&	488791	&	516483	\\	\hline
+Find	&&	909	&	2318	&	96931	&&	1114	&	192217	&	18291	\\	\hline
+syscall	&&	171	&	1117	&	23640	&&	166	&	1090	&	21597	\\	\hline
+stat	&&	158	&	1100	&	15449	&&	160	&	3019	&	42	\\	\hline
+fstat	&&	165	&	1117	&	21201	&&	162	&	2964	&	44	\\	\hline
+open/close	&&	169	&	1102	&	15342	&&	185	&	23712	&	43	\\	\hline
+sig hndl	&&	162	&	1140	&	19541	&&	165	&	1074	&	19478	\\	\hline
+pipe	&&	39170	&	1335	&	229665	&&	21718	&	261374	&	17807	\\	\hline
+fork	&&	543	&	5825	&	6579	&&	548	&	14987	&	347	\\	\hline
+exec	&&	638	&	7969	&	7209	&&	640	&	18119	&	241	\\	\hline
+sh	&&	1179	&	15699	&	14706	&&	1161	&	34827	&	442	\\	\hline
+
+
+      \end{tabular}
+\label{tab:adaptive_tlb_resizing}
+\end{table*} 
+
+
 
 \section{Discussion}
 \label{sec:discussion}
