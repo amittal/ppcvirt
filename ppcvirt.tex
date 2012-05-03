@@ -216,7 +216,6 @@ improvements.
 
 \begin{figure}[!htb]
 \centering
-
 \includegraphics[scale=0.5]{exit_count.eps}
 \label{fig:opcode_exit_fraction}
 \caption{Main sources of VM exits}
@@ -224,7 +223,6 @@ improvements.
 
 \begin{figure}[!htb]
 \centering
-
 \includegraphics[scale=0.5]{multiple_ins_patching.eps}
 \label{fig:multiple_insns_patching}
 \caption{Figure showing patching of multiple instructions using {\tt bl} instruction. This approach fails in presence of arbitrary guest jumps.}
@@ -355,8 +353,8 @@ and hypercall as a virtual guest device driver (similar to the ``tools'' mechani
 used in many virtualization solutions). We envisage mechanisms to setup
 such shared address spaces using well-known standards for device
 discovery (e.g., ePAPR\cite{ePAPR}) in future.
-We require 75 LOC changes in a Linux guest to implement this mechanism. This is
-significantly less than the 1100 LOC required by the Linux paravirtual
+We require 75 SLOC changes in a Linux guest to implement this mechanism. This is
+significantly less than the 1100 SLOC required by the Linux paravirtual
 extensions.
 
 In our current implementation, two distinct address ranges are reserved by the
@@ -669,13 +667,12 @@ We implement the following optimizations in Linux/KVM:
   \item Adaptive Page Resizing
   \item Adaptive Data Mirroring and Translation of Faulting Instructions
 \end{enumerate}
-We perform experiments to measure the performance improvements through these
-optimizations. Optimization 1 results in reduced number of VM exits due
-to privileged instructions. For a guest/hypervisor using small pages, this results
-in performance improvements. Most guests however use large pages to reduce
-TLB pressure. Tracing large pages causes a page fault on each kernel data access.
-This leads to unacceptably low performance. For example, a Linux guest boot livelocks
-on such a system.
+Just using Optimization 1 does not improve performance for a Linux guest.
+In fact, we find that read/write tracing severely impairs performance because
+the guest uses a huge 256MB page to map the kernel's code and data. If we
+constrain the host to only use 4KB shadow pages, the performance improves
+but is still unacceptably low due to high TLB pressure.
+
 \begin{table*}
 \centering
       \begin{tabular}{|l| r r r |} \hline
@@ -908,9 +905,7 @@ as previously discussed in Section~\ref{sec:comparison_with_full_bt}.
 The recent extension to the Linux kernel for Power Architecture paravirtualization
 contrasts with our approach. While the paravirtual modifications require extensive
 changes to the Linux kernel, our approach can achieve comparable performance
-with only host-side optimizations. Compared with the 1100 LOC included in the
-paravirtual Linux extensions, our approach requires only 75 LOC to be added to
-a Linux guest.
+with only host-side optimizations.
 
 We present our experiments and results on a uniprocessor system but our
 ideas are equally relevant to a multiprocessor system. For a multiprocessor
