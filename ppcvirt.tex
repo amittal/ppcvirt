@@ -652,9 +652,9 @@ To maintain guest correctness, the pages containing patches for
 faulting instructions (due to tracing) need to be read/write traced too.
 This can potentially result in a chain-effect: tracing of these new pages
 can cause more tracing page faults, resulting in more pages to be
-patched and traced, resulting in more tracing page faults, and so on\ldots
+patched and traced, resulting in more tracing page faults, and so on\ldots.
 Fortunately, we do not see this chain effect in practice. The faulting instructions
-that are patched typically reside on a page that is being already traced,
+that are patched typically reside on a page that is already being traced,
 causing this
 cycle to converge on the first iteration.
 Even if the patching of the faulting instructions requires a new read/write trace to be
@@ -684,11 +684,11 @@ system has a 1.2GHz processor with 32KB L1 cache and 512 KB L2 cache.
 We use RAMdisk for our experiments to eliminate I/O
 overheads.
 
-Our benchmarks are described in Table~\ref{tab:detailed_results}. We use four macrobenchmarks, namely Linux boot, Echo spawn,
+Our benchmarks are described in Table~\ref{tab:kvm_performance}. We use four macrobenchmarks, namely Linux boot, Echo spawn,
 Find and Lame. These benchmarks have also been used in a previous performance study\cite{kvm_ppc_exittimings}. The others are microbenchmarks from the widely-used {\tt lmbench} toolset\cite{lmbench}.
 Linux boot and Echo spawn execute a large number of privileged instructions, while Find executes relatively fewer privileged instructions. Lame has to
 do some I/O and a lot of computation that does not need to exit to the
-hypervisor (thus representing an average compute-intensive workload).
+hypervisor, thus representing an average compute-intensive workload.
 Most {\tt lmbench} programs repeatedly execute the same function, which usually involves executing a large number
 of privileged operations. The number of privileged instructions executed by each benchmark are reported
 in Table~\ref{tab:vm_exit_stats}. We do not report performance comparisons on purely user-level compute-intensive
