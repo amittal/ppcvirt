@@ -285,31 +285,31 @@ improvements.
 
 \begin{table*}
 \centering
-      \begin{tabular}{|l| l|p{5cm} | r r r r|} \hline
-        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& {\tt KVM} \verb, , & {\tt KVM-PV} \verb, ,& {\tt KVM-BT} \\ \hline
+      \begin{tabular}{|l@{}| l@{}|p{3.8cm} | r r r r r|} \hline
+        S.No.\verb, ,&  Benchmark\verb, ,& Description  & Bare-metal \verb, ,& {\tt KVM} \verb, , & {\tt KVM-PV} \verb, ,& {\tt KVM-BT}& Speedup \\ \hline
 
-     &&& \multicolumn{4}{c|}{ Running Time in $sec$}\\\cline {4-7}  
-      1&  Linux Boot& linux boot & 6.5	&	30.03	&	11.79	&	12.24 \\ \hline
-      2& Echo Spawn	& Spawning a large number of echo processes&1.4	&	21.34	&	6.5	&	7.26\\\hline
-      3& Find	& find / -name temp & 0.39	&	1.89	&	0.67	&	0.71 \\ \hline
-	   \multicolumn{3}{|c|}{ lmbench microbenchmarks }& \multicolumn{4}{c|}{Latency in $msec$}\\  \hline
+     &&& \multicolumn{5}{c|}{ Running Time in $sec$}\\\cline {4-8}  
+      1&  Linux Boot& linux boot & 6.5	&	30.03	&	11.79	&	12.24 & 2.5x \\ \hline
+      2& Echo Spawn	& Spawning a large number of echo processes&1.4	&	21.34	&	6.5	&	7.26& 2.9x \\\hline
+      3& Find	& find / -name temp & 0.39	&	1.89	&	0.67	&	0.71 & 2.7x\\ \hline
+	   \multicolumn{3}{|c|}{ lmbench microbenchmarks }& \multicolumn{5}{c|}{Latency in $msec$}\\  \hline
 
-4	&	syscall	&	 measures time to write one word to /dev/null	&	0.000	&	0.020	&	0.003	&	0.003	\\	\hline
-5	&	stat	&	 measures the time to invoke the stat system call	&	0.003	&	0.033	&	0.006	&	0.007	\\	\hline
-6	&	fstat	&	time to invoke fstat system call on open file 	&	0.001	&	0.021	&	0.004	&	0.004	\\	\hline
-7	&	open/close:	&	 time to open a temporary file for reading and closing it immediately 	&	0.006	&	0.067	&	0.013	&	0.014	\\	\hline
-8	&	sig hndl	&	 time to install a signal handler	&	0.001	&	0.024	&	0.004	&	0.004	\\	\hline
-9	&	pipe 	&	 round trip latency to pass a word from process A to process B and back to A	&	0.014	&	0.164	&	0.032	&	0.034	\\	\hline
-10	&	fork	&	 fork and exit 	&	1.084	&	6.641	&	1.640	&	2.061	\\	\hline
-11	&	exec	&	 fork, exec and exit	&	3.065	&	20.543	&	6.254	&	7.533	\\	\hline
-12	&	sh	&	 fork, exec sh -c and exit	&	6.645	&	45.164	&	13.842	&	16.327	\\	\hline
+4	&	syscall	&	 measures time to write one word to /dev/null	&	0.000	&	0.020	&	0.003	&	0.003 & 6.7x	\\	\hline
+5	&	stat	&	 measures the time to invoke the stat system call	&	0.003	&	0.033	&	0.006	&	0.007& 4.7x	\\	\hline
+6	&	fstat	&	time to invoke fstat system call on open file 	&	0.001	&	0.021	&	0.004	&	0.004&5.3x	\\	\hline
+7	&	open/close:	&	 time to open a temporary file for reading and closing it immediately 	&	0.006	&	0.067	&	0.013	&	0.014&4.8x	\\	\hline
+8	&	sig hndl	&	 time to install a signal handler	&	0.001	&	0.024	&	0.004	&	0.004	& 6x\\	\hline
+9	&	pipe 	&	 round trip latency to pass a word from process A to process B and back to A	&	0.014	&	0.164	&	0.032	&	0.034&4.8x	\\	\hline
+10	&	fork	&	 fork and exit 	&	1.084	&	6.641	&	1.640	&	2.061&3.2x	\\	\hline
+11	&	exec	&	 fork, exec and exit	&	3.065	&	20.543	&	6.254	&	7.533&2.7x	\\	\hline
+12	&	sh	&	 fork, exec sh -c and exit	&	6.645	&	45.164	&	13.842	&	16.327&2.8x	\\	\hline
 
 
 
         \hline
       \end{tabular}
 \caption{Performance comparison of bare-metal, unmodified KVM, KVM-paravirtual, and our (KVM-BT) approach. The details of
-the benchmarks, our test system, and the various KVM variants is discussed in Section~\ref{sec:results}}
+the benchmarks, our test system, and the various KVM variants is discussed in Section~\ref{sec:results}. The last column computes the speedup of {\tt KVM-BT} over {\tt KVM}.}
 \label{tab:kvm_performance}
 \end{table*} 
 %\begin{table}[!b]
@@ -639,7 +639,7 @@ This optimization prevents future page faults on this data.
 
 We perform this optimization if the number of tracing page faults
 due to a certain read-access instruction exceeds a threshold (we use a threshold
-of 2000 accesses in XXXms). On noticing
+of 2000 accessess). On noticing
 such faults, we copy the data being accessed
 to a ``data cache''. This data cache is maintained in the read/write shared page
 also storing the guest's emulated registers.
@@ -774,14 +774,14 @@ in Table~\ref{tab:detailed_results} shows the performance of KVM with
 Optimizations~1~and~2.
 We first discuss the {\tt lmbench} microbenchmarks. The running time
 of all microbenchmarks improves with Optimizations~1~and~2. The average improvement
-is XXX\%, with the maximum improvement of 600\% in stat. The improvement in
+is 220\%, with the maximum improvement of 500\% in stat. The improvement in
 a benchmark primarily depends on the reduction in the number of privileged exits.
 Different microbenchmarks execute different number of privileged
 instructions and show different corresponding reductions.
 We next discuss the improvement on macrobenchmarks using Optimizations~1~and~2.
-We observe a performance improvement of XXX\% on the macrobenchmarks, with the
+We observe a performance improvement of 116\% on the macrobenchmarks, with the
 maximum improvement seen in Linux boot, which also shows the maximum reduction
-(XXX\%) in exits due to privileged instructions.
+(99\%) in exits due to privileged instructions.
 For both microbenchmarks and macrobenchmarks, we notice an increase in the
 number of TLB misses and access violations (due to tracing page faults)
 on average. The net effect however remains positive. Our next
@@ -798,7 +798,7 @@ almost all tracing page faults are eliminated by Optimization~2 already.
 For these benchmarks, Optimization~2 ensures that the accessed data and the
 patched code are already on separate pages. The average reduction in the number
 of access-violation page faults (which are mostly due to tracing
-page faults) is XXX\%.
+page faults) is 98\%.
 
 Optimization~3 also reduces the number of privileged-instruction
 exits and TLB misses on many of our benchmarks.
@@ -810,15 +810,15 @@ page faults decreases. This allows Optimization~2 to not have to kick in, allowi
 pages to remain unbroken and privileged-instructions to remain patched.
 This reduces both TLB misses and number of privileged instruction exits.
 We observe this effect in almost all our benchmarks. We notice up to
-XXX\% decrease in the number of TLB misses (for {\tt find} benchmark),
-and up to XXX\% decrease in the number of privileged-instruction
+98\% decrease in the number of TLB misses (for {\tt find} benchmark),
+and up to 9\% decrease in the number of privileged-instruction
 exits (for Linux boot benchmark).
 
 Overall Optimizations~1,~2~and~3 provide performance comparable to
 paravirtualization. On our macrobenchmarks, we observe an
-average speedup of XXX\% over unmodified KVM. Optimization~3 provides
+average speedup of 168\% over unmodified KVM. Optimization~3 provides
 significant improvements on many benchmarks, including the {\tt find}
-macrobenchmark, where the improvement is around XXX\%.
+macrobenchmark, where the improvement is around 194\%.
 Table~\ref{tab:vm_exit_stats} confirms that these improvements
 are due to the
 reduction in exits caused by tracing page faults, TLB misses, and
