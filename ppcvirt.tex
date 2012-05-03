@@ -179,13 +179,13 @@ Table~\ref{tab:priv_opcodes} lists the most executed privileged
 opcodes and briefly explains their semantics.
 Figure~\ref{fig:opcode_exit_fraction} shows the percentage of exits caused
 due to each opcode. Only five opcodes result in more than 80\% of exits on all
-three benchmarks. Table~\ref{tab:linuxboot_exitcount} presents the frequency
+three benchmarks. Table~\ref{tab:exitcount_linuxboot} presents the frequency
 profile of VM exits on the Linux boot benchmark in more detail.
 
 We next profile the number of distinct program counter (PC) values that
 cause exits. Figure~\ref{fig:pc_profile} shows a histogram on the number
 of distinct PC values and the frequency of exits on them.
-Table~\ref{tab:linuxboot_pcexits} presents the exit profile of different
+Table~\ref{tab:pcexits_linuxboot} presents the exit profile of different
 PCs in more detail for the Linux boot benchmark. For example, around 92\% of all
 exits are caused by only 93 distinct PCs for guest Linux boot. These
 measurements confirm that
@@ -245,8 +245,7 @@ improvements.
        {\tt itlbmiss} & 192046 & 1.4 \\
        \hline
      \end{tabular}
-\label{tab:linuxboot_exitcount}
-\caption{Main sources of VM exits and their frequency on guest Linux boot (refer Table~\ref{tab:priv_opcodes} for semantics of these opcodes)}
+\caption{\label{tab:exitcount_linuxboot}Main sources of VM exits and their frequency on guest Linux boot (refer Table~\ref{tab:priv_opcodes} for semantics of these opcodes)}
 \end{table}
 
 \begin{figure}[!htb]
@@ -266,7 +265,7 @@ improvements.
 \end{figure}
 
 
-\begin{table}[!b]
+\begin{table}
 \centering
      \begin{tabular}{lcc} \hline
        Exits count  & PC count & \% of total exits  \\ \hline
@@ -278,8 +277,7 @@ improvements.
        $<$1000 & 299 & 0.2 \\
        \hline
      \end{tabular}
-\label{tab:linuxboot_pcexits}
-\caption{PCs responsible for VM exits on guest Linux boot}
+\caption{\label{tab:pcexits_linuxboot}PCs responsible for VM exits on guest Linux boot}
 \end{table}
 
 
