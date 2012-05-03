@@ -656,11 +656,12 @@ instruction is replaced with a branch to this code.
 To maintain guest correctness, the pages containing patches for
 faulting instructions (due to tracing) need to be read/write traced too.
 This can potentially result in a chain-effect: tracing of these new pages
-can cause more page faults, resulting in more patching to be performed, and so on\ldots
+can cause more tracing page faults, resulting in more pages to be
+patched and traced, resulting in more tracing page faults, and so on\ldots
 Fortunately, we do not see this chain effect in practice. The faulting instructions
-that are patched typically reside on the same
-page as the original patched privileged instructions, causing this
-cycle to converge on the first iteration (because these pages are already traced).
+that are patched typically reside on a page that is being already traced,
+causing this
+cycle to converge on the first iteration.
 Even if the patching of the faulting instructions requires a new read/write trace to be
 created, we expect this
 cycle to converge in 1-2 iterations. Intuitively, kernel
