@@ -522,7 +522,7 @@ guest kernel code. The problem becomes worse with increasing page size. Linux
 on embedded
 Power Architecture platform uses huge pages for kernel code/data to minimize
 TLB pressure, causing our tracing mechanism to result in a huge number of page
-faults.
+faults. We call these {\em tracing page faults}.
 
 We implement two optimizations to reduce tracing page faults. Our first optimization
 adaptively resizes the guest's pages to reduce false sharing.
@@ -568,7 +568,7 @@ large number of page faults (every kernel data access becomes a page fault).
 
 We resize shadow TLB entries to deal with this overhead of page faults due to read/write
 tracing. After patching a privileged guest instruction, if we notice
-a high number of tracing-induced page faults on that page, we {\em break} the page into
+a high number of tracing page faults on that page, we {\em break} the page into
 smaller fragments (and the corresponding TLB entry into smaller TLB entries).
 After breaking,
 we only mark the
@@ -587,7 +587,7 @@ on the smaller page (which cannot be broken further), we remove all patch-sites
 on that page and re-instate read/write privileges on it. The decision on
 whether to remove the patch-sites on a page, depends on the tradeoff
 between the number of privileged-instruction exits and the number of
-tracing-induced page faults on that page.
+tracing page faults on that page.
 
 Breaking a large page potentially creates
 many smaller pages due to alignment restrictions.
@@ -603,7 +603,7 @@ addresses
 aligned.
 
 We use the following fragmentation policy. On
-observing a high number of tracing-induced page faults (we use a threshold of 10000 faults in
+observing a high number of tracing page faults (we use a threshold of 10000 faults in
 100ms) on a page, that page is broken such that all patch-sites on that page
 belong to 64KB pages. We do not break pages to smaller than 64KB to
 limit TLB pressure. We periodically monitor the number of page faults on
@@ -639,7 +639,7 @@ This optimization prevents future page faults on this data.
 
 We perform this optimization if the number of tracing page faults
 due to a certain read-access instruction exceeds a threshold (we use a threshold
-of 2000 accesses). On noticing
+of 2000 accesses in XXXms). On noticing
 such faults, we copy the data being accessed
 to a ``data cache''. This data cache is maintained in the read/write shared page
 also storing the guest's emulated registers.
@@ -766,7 +766,7 @@ exits due to access violations are due to read/write accesses to pages which do 
 \end{center}
 
 Optimization 2 adaptively resizes the shadow TLB entries to reduce
-the number of tracing-induced page faults and results in
+the number of tracing page faults and results in
 performance improvements over unmodified KVM. The second column ({\tt Adapt-PR})
 in Table~\ref{tab:detailed_results} shows the performance of KVM with
 Optimizations~1~and~2.
@@ -781,29 +781,29 @@ We observe a performance improvement of XXX\% on the macrobenchmarks, with the
 maximum improvement seen in Linux boot, which also shows the maximum reduction
 (XXX\%) in exits due to privileged instructions.
 For both microbenchmarks and macrobenchmarks, we notice an increase in the
-number of TLB misses and access violations (due to tracing-induced page faults)
+number of TLB misses and access violations (due to tracing page faults)
 on average. The net effect however remains positive. Our next
 optimization (Optimization~3) further
 reduces these access violations. We also find that Optimization~3 reduces
 privileged instruction exits and TLB misses.
 
-Optimization~3 reduces the number of tracing-induced page faults
+Optimization~3 reduces the number of tracing page faults
 by mirroring the data residing on a traced page and patching the corresponding
 access instruction to access the data from the mirrored location in future.
 The reduction is observed in all our benchmarks, except {\tt stat}, {\tt fstat},
 and {\tt open/close}. In these three cases, we notice that
-almost all tracing-induced page faults are eliminated by Optimization~2 already.
+almost all tracing page faults are eliminated by Optimization~2 already.
 For these benchmarks, Optimization~2 ensures that the accessed data and the
 patched code are already on separate pages. The average reduction in the number
-of access-violation page faults (which are mostly due to tracing-induced
+of access-violation page faults (which are mostly due to tracing
 page faults) is XXX\%.
 
 Optimization~3 also reduces the number of privileged-instruction
 exits and TLB misses on many of our benchmarks.
-We find that this happens due to an interesting indirect effect.
+This happens due to an interesting indirect effect.
 Without Optimization~3, certain guest code pages are adaptively broken into smaller pages
 and privileged-instruction patches on some of these smaller pages are removed to reduce
-tracing-induced page faults. With Optimization~3, the number of tracing-induced
+tracing page faults. With Optimization~3, the number of tracing
 page faults decreases. This allows Optimization~2 to not have to kick in, allowing
 pages to remain unbroken and privileged-instructions to remain patched.
 This reduces both TLB misses and number of privileged instruction exits.
@@ -811,6 +811,16 @@ We observe this effect in almost all our benchmarks. We notice up to
 XXX\% decrease in the number of TLB misses (for {\tt find} benchmark),
 and up to XXX\% decrease in the number of privileged-instruction
 exits (for Linux boot benchmark).
+
+Overall Optimizations~1,2~and~3 provide performance comparable to
+paravirtualization. On our macrobenchmarks, we observe an
+average speedup of XXX\% over unmodified KVM. Optimization~3 provides
+significant improvements on many benchmarks, including the {\tt find}
+macrobenchmark, where the improvement is around XXX\%.
+Table~\ref{tab:vm_exit_stats} confirms that these improvements
+are due to the
+reduction in exits caused by tracing page faults, TLB misses, and
+privileged-instruction executions.
 
 We next measure the overhead and effectiveness
 of our adaptive page resizing algorithm. We statically configured the
@@ -868,7 +878,7 @@ sh	&	17.615	&	21.813\\
       \end{tabular}
 \label{tab:adaptive_tlb_resizing}
 \caption{Measuring the overhead and performance of adaptive page resizing ({\tt Adapt-PR}) algorithm, in comparison to
-a statically configured TLB ({\tt Static-TLB}). The static TLB configuration was setup such that it provides the best performance for the Linux boot benchmark. {\tt Adapt-DM} optimization is disabled for this experiment.}
+a statically configured TLB ({\tt Static-TLB}). The static TLB configuration was setup such that it provides the best performance for the Linux boot benchmark. We disable {\tt Adapt-DM} optimization for this experiment.}
 \end{table*} 
 
 \begin{table*}
@@ -891,7 +901,7 @@ exec	&&	638	&	7969	&	7209	&&	640	&	18119	&	241	\\	\hline
 sh	&&	1179	&	15699	&	14706	&&	1161	&	34827	&	442	\\	\hline
       \end{tabular}
 \label{tab:adaptive_tlb_resizing_exits}
-\caption{Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}. {\tt Adapt-DM} optimization is disabled for this experiment.}
+\caption{Sources of VM exits, while comparing {\tt Static-TLB} with {\tt Adapt-PR}. We disable {\tt Adapt-DM} optimization for this experiment.}
 \end{table*} 
 
 \section{Discussion}
