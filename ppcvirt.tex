@@ -15,11 +15,11 @@
 
 \maketitle
 \begin{abstract}
-  Power Architecture\textsuperscript{\textregistered} platforms are popular and widespread on embedded systems, and such
+  Power Architecture\textsuperscript{\textregistered} processors are popular and widespread on embedded systems, and such
   platforms are
   increasingly
   being used to run virtual machines\cite{embedded_virtualization, KVM_on_embedded_Power}. While the Power
-  Architecture platforms meet the
+  Architecture meets the
   Popek-and-Goldberg virtualization requirements for traditional trap-and-emulate
   style virtualization, the performance overhead of virtualization remains high.
   For example, workloads exhibiting a large amount of kernel activity typically
@@ -28,7 +28,7 @@
   Recent additions to the Linux kernel contain guest and host side paravirtual
   extensions for Power Architecture platforms. While these extensions improve performance
   significantly, they
-  are guest-intrusive, not  easily portable and cover only a subset of all possible
+  are guest-intrusive, non-portable and cover only a subset of all possible
   virtualization optimizations.
 
   We present a set of host-side optimizations that achieve comparable
@@ -47,7 +47,7 @@
   the paravirtual approach, without being guest-specific.
 \end{abstract}
 \section{Introduction}
-Embedded devices based on Power Architecture technology are dominant for their
+Embedded devices based on Power Architecture processors are dominant for their
 favourable power/performance characteristics. Virtualization on these platforms is
 compelling for several applications including high availability (active/standby
 configuration without additional hardware), in-service upgrade, and many
@@ -69,13 +69,14 @@ For example, a guest Linux boot takes almost 5x longer when run virtualized.
 
 The poor performance of simple trap-and-emulate style virtualization has led to
 the inclusion of paravirtual extensions in the Linux kernel on both
-guest and host sides for Power Architecture\cite{pvpower} platforms. The paravirtual extension in the guest
+guest and host sides for Power Architecture platform\cite{pvpower}. The paravirtual extension in the guest
 rewrites the guest (binary) kernel
 code at startup time to replace most privileged instructions with
-hypervisor-aware unprivileged counterparts ({\em hypercalls}).
+hypervisor-aware unprivileged counterparts.
 At guest startup, the guest creates a shared address space with
-the host through a hypercall. This shared address space
-is used in future to efficiently exchange arguments and results of other hypercalls between guest and host.
+the host through a {\em hypercall}. This shared address space
+is used by the hypervisor to store guest state information, which
+is accessible to the guest without incurring a trap.
 Table~\ref{tab:kvm_performance} lists KVM performance after enabling paravirtual
 extensions in the guest and the host. The performance improves significantly over
 unmodified KVM.
@@ -121,7 +122,7 @@ could potentially jump to the middle of our translated code.
 %word-aligned nature of Power Architecture instructions to achieve correctness.
 To ensure correctness, we replace a privileged guest instruction
 by at most one translated instruction in the guest's address space. Because instructions
-are fixed length and word aligned on Power Architecture platforms, this ensures that
+are fixed length and word aligned on Power Architecture platform, this ensures that
 there can never be a branch to the middle of our translated
 code. Any branch could only reach either the beginning or the end of our
 replacement instruction.
@@ -143,7 +144,7 @@ modified code. We call this mechanism {\em read/write tracing}.
 
 Finally, read/write tracing can cause a large number of
 page faults, especially due to false sharing. The problem is
-exacerbated on embedded Power Architecture platforms, where OS typically uses
+exacerbated on embedded Power Architecture platform, where OS typically uses
 huge pages to reduce TLB pressure. We found that such page faults can
 significantly reduce performance.
 We implement two important optimizations to address this problem, namely
@@ -155,7 +156,7 @@ and maintains guest correctness in presence of self-referential and self-modifyi
 guest code.
 The paper is organized as
 follows. Section~\ref{sec:performance_char} characterizes the performance of
-KVM on Power Architecture and discusses the typical sources of overhead.
+KVM on Power Architecture platform and discusses the typical sources of overhead.
 Section~\ref{sec:bintrans} discusses our in-place binary translation approach.
 We discuss read/write tracing and our optimizations to make
 it efficient in Section~\ref{sec:tracing}.
@@ -377,7 +378,7 @@ with guest execute privileges to store the translation cache.
 These shared address spaces also have placement constraints. For easy direct
 addressing, we place the 4KB page (containing guest's emulated registers) at
 the top of guest's virtual address space (at {\tt 0xfffff000}). This is important 
-because direct memory-addressing modes on Power Architecture specify only 16-bit
+because direct memory-addressing modes on Power Architecture platform specify only 16-bit
 addresses. For absolute addressing, this implies that the memory
 address must lie in either
 the lower 32KB ({\tt 0x00000000-0x00007fff}) or higher
@@ -387,7 +388,7 @@ addresses are reserved for user applications on Linux, we use the higher address
 The second shared address range to store the translation cache, also has placement
 constraints. This execute-only space must be reachable
 by a direct branch instruction from the guest code. A direct branch instruction
-on Power Architecture specifies a 26-bit
+in Power Architecture ISA specifies a 26-bit
 word-aligned address. The branch target addressing is either PC-relative
 or absolute. This implies that the translation cache could be
 in one of the following regions: {\tt 0x0000000-0x00ffffff}, {\tt 0xff000000-0xffffffff},
@@ -497,7 +498,7 @@ method memory read/write tracing (similar to VMware's memory write tracing
 on x86\cite{adams:asplos06}).
 
 We implement software emulations of memory instructions in KVM. There are 36
-different memory opcodes on Power Architecture that need to be emulated.
+different memory opcodes in Power Architecture ISA that need to be emulated.
 For read instructions, we simply return the original contents of the memory
 address in the appropriate destination
 operand. The original contents may be obtained either from the present guest
@@ -516,7 +517,7 @@ Much of this overhead is due to false sharing. For example, a large number of pa
 faults occur because guest kernel data often resides on the same page as
 guest kernel code. The problem becomes worse with increasing page size. Linux
 on embedded
-Power Architecture platforms uses huge pages for kernel code/data to minimize
+Power Architecture platform uses huge pages for kernel code/data to minimize
 TLB pressure, causing our tracing mechanism to result in a huge number of page
 faults.
 
@@ -833,11 +834,12 @@ of smaller pages, and then does not get enough time to merge them back. This
 results in a larger number of overall TLB misses (shown in
 Table~\ref{tab:adaptive_tlb_resizing_exits}), and happens primarily due
 to the short-lived nature of the benchmark. Running the benchmark longer shows
-performance comparable to the static configuration. We do not
-see this effect in microbenchmarks (which are
-also short-lived), because they have a much shorter memory footprint
-and hence do not show a large increase in TLB misses due to
-page fragmentation.
+performance comparable to the static configuration. We also
+see this effect in some of the microbenchmarks.
+%(which are
+%also short-lived), because they have a much shorter memory footprint
+%and hence do not show a large increase in TLB misses due to
+%page fragmentation.
 \begin{table*}
 \centering
       \begin{tabular}{|l| r r |} \hline
@@ -915,7 +917,8 @@ translation is much harder (or perhaps impossible) to implement correctly
 on x86.
 
 We also rely on the ability to read/write trace guest pages by marking them
-{\tt execute-only}. This is possible on embedded Power Architecture processors due to the
+{\tt execute-only}. This is possible on embedded Power Architecture
+platform due to the
 availability of separate
 {\tt read-write-execute} page protection bits.
 In contrast, the x86 architecture provides only {\tt read-only} and
@@ -929,8 +932,8 @@ to implement {\tt execute-only} privileges at page granularity.
 Subtle
 differences in architectures greatly impact VMM design. We believe that our
 approach is perhaps a misfit for the x86 architecture for reasons outlined above.
-Similarly, a full binary translator is perhaps an overkill for the embedded
-Power Architecture, given that our lightweight adaptive in-place binary translator
+Similarly, a full binary translator is perhaps an overkill for embedded
+Power Architecture virtualization, given that our lightweight adaptive in-place binary translator
 can achieve the same (or better) effect with less engineering effort.
 
 \subsection{Other Related Work}
